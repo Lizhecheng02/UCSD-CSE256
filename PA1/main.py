@@ -192,7 +192,7 @@ def main():
         nn3_train_accuracy, nn3_test_accuracy = experiment(NN3BOW(input_size=512, hidden_size=100), train_loader, test_loader, lr=args.lr)
 
         # Plot the training accuracy
-        plt.figure(figsize=(8, 6))
+        plt.figure(figsize=(9, 5.5))
         plt.plot(nn2_train_accuracy, label="2 layers")
         plt.plot(nn3_train_accuracy, label="3 layers")
         plt.xlabel("Epochs")
@@ -207,7 +207,7 @@ def main():
         print(f"\n\nTraining accuracy plot saved as {training_accuracy_file}")
 
         # Plot the testing accuracy
-        plt.figure(figsize=(8, 6))
+        plt.figure(figsize=(9, 5.5))
         plt.plot(nn2_test_accuracy, label="2 layers")
         plt.plot(nn3_test_accuracy, label="3 layers")
         plt.xlabel("Epochs")
@@ -264,7 +264,7 @@ def main():
         elapsed_time = end_time - start_time
         print(f"Model trained in : {elapsed_time} seconds")
 
-        plt.figure(figsize=(8, 6))
+        plt.figure(figsize=(9, 5.5))
         plt.plot(dan_train_acc, label="DAN_BPE" if args.use_bpe_trainer else "DAN")
         plt.xlabel("Epochs")
         plt.ylabel("Training Accuracy")
@@ -278,7 +278,7 @@ def main():
         print(f"\n\nTraining accuracy plot saved as {training_accuracy_file}")
 
         # Plot the testing accuracy
-        plt.figure(figsize=(8, 6))
+        plt.figure(figsize=(9, 5.5))
         plt.plot(dan_test_acc, label="DAN_BPE" if args.use_bpe_trainer else "DAN")
         plt.xlabel("Epochs")
         plt.ylabel("Dev Accuracy")
