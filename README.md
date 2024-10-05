@@ -57,7 +57,7 @@ unzip cse256-pa-data.zip
 
 **If you run it successfully using 300d embedding and three layers DAN model, with around 10 epochs, you could get the dev accuracy to about 0.825.**
 
-<img src="./PA1/dev_accuracy_dan.png" style="zoom:50%;" />
+<img src="./PA1/dev_accuracy_dan.png" width="60%" />
 
 ##### 1.3 If you want to use "DAN" model with trained BPE tokenizer.
 - Find the ``config.yaml`` file.
@@ -69,4 +69,4 @@ unzip cse256-pa-data.zip
 
 **If you run it successfully using 20,000 vocab size, you could find that the dev accuracy doesn't increase even after training for 20 epochs.**
 
-<img src="./PA1/dev_accuracy_dan_bpe.png" style="zoom:50%;" />
+<img src="./PA1/dev_accuracy_dan_bpe.png" width="60%" />
