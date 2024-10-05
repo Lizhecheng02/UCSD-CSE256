@@ -131,20 +131,20 @@ def experiment(model, train_loader, test_loader, lr):
     return all_train_accuracy, all_test_accuracy
 
 
-def experiment_dan(model, train_loader, test_loader, lr):
+def experiment_dan(model, train_loader, test_loader, lr, epochs):
     loss_fn = nn.BCEWithLogitsLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 
     all_train_accuracy = []
     all_test_accuracy = []
-    for epoch in range(100):
+    for epoch in range(epochs):
         train_accuracy, train_loss = train_epoch_dan(train_loader, model, loss_fn, optimizer)
         all_train_accuracy.append(train_accuracy)
 
         test_accuracy, test_loss = eval_epoch_dan(test_loader, model, loss_fn)
         all_test_accuracy.append(test_accuracy)
 
-        if epoch % 10 == 9:
+        if epoch % 1 == 0:
             print(f'Epoch #{epoch + 1}: train accuracy {train_accuracy: .3f}, dev accuracy {test_accuracy: .3f}')
     
     return all_train_accuracy, all_test_accuracy
@@ -248,7 +248,13 @@ def main():
             dropout_rate=args.dropout_rate
         )
 
-        dan_train_acc, dan_test_acc = experiment_dan(model, train_loader, test_loader, lr=args.lr)
+        start_time = time.time()
+
+        dan_train_acc, dan_test_acc = experiment_dan(model, train_loader, test_loader, lr=args.lr, epochs=args.epochs)
+
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        print(f"Model trained in : {elapsed_time} seconds")
 
         plt.figure(figsize=(8, 6))
         plt.plot(dan_train_acc, label='DAN')
