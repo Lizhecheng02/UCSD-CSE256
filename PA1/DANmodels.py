@@ -1,7 +1,9 @@
 import torch
 import torch.nn as nn
-from sentiment_data import *
+from sentiment_data import read_sentiment_examples, read_word_embeddings
 from torch.utils.data import Dataset
+from bpe_trainer import train_bpe_tokenizer
+from transformers import PreTrainedTokenizerFast
 
 
 class SentimentDatasetDAN(Dataset):
@@ -36,6 +38,37 @@ class SentimentDatasetDAN(Dataset):
 
     def __getitem__(self, idx):
         return self.sentences[idx], self.labels[idx]
+    
+
+class SentimentDatasetDAN_BPE(Dataset):
+    def __init__(self, infile, bpe_vocab_size, max_length=32):
+        self.examples = read_sentiment_examples(infile)
+        self.sentences = [" ".join(ex.words) for ex in self.examples]
+        self.labels = [ex.label for ex in self.examples]
+
+        train_bpe_tokenizer(bpe_vocab_size=bpe_vocab_size)
+        tokenizer = PreTrainedTokenizerFast.from_pretrained("./bpe_trained_tokenizer")
+
+        sentences_list = []
+        for sentence in self.sentences:
+            tokens = tokenizer.tokenize(sentence)
+            token_ids = tokenizer.convert_tokens_to_ids(tokens)
+            if len(token_ids) > max_length:
+                token_ids = token_ids[:max_length]
+            while len(token_ids) < max_length:
+                token_ids.append(tokenizer.convert_tokens_to_ids("[PAD]"))
+            sentences_list.append(token_ids)
+
+        self.sentences = torch.tensor(sentences_list, dtype=torch.float32)
+        print(self.sentences.shape)
+        self.labels = torch.tensor(self.labels, dtype=torch.float32)
+        print(self.labels.shape)
+
+    def __len__(self):
+        return len(self.examples)
+
+    def __getitem__(self, idx):
+        return self.sentences[idx], self.labels[idx]
 
 
 class DAN(nn.Module):
@@ -44,7 +77,7 @@ class DAN(nn.Module):
         use_random_embed=False,
         vocab_size=15000,
         embed_file="./data/glove.6B.50d-relativized.txt",
-        freeze_embed=True,
+        freeze_embed=False,
         input_size=50,
         hidden_sizes=[256, 256, 256],
         output_size=64,
@@ -91,7 +124,7 @@ class DAN(nn.Module):
 
     def forward(self, x):
         if self.use_random_embed:
-            embeddings = self.random_embedding(x)
+            embeddings = self.random_embedding(x.long())
             x = embeddings.mean(dim=1)
         else:
             embeddings = self.pretrained_embedding(x.long())

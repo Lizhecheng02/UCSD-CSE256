@@ -11,7 +11,7 @@ import argparse
 import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader
 from BOWmodels import SentimentDatasetBOW, NN2BOW, NN3BOW
-from DANmodels import *
+from DANmodels import SentimentDatasetDAN, SentimentDatasetDAN_BPE, DAN
 from tqdm import tqdm
 
 
@@ -126,7 +126,7 @@ def experiment(model, train_loader, test_loader, lr):
         all_test_accuracy.append(test_accuracy)
 
         if epoch % 10 == 9:
-            print(f'Epoch #{epoch + 1}: train accuracy {train_accuracy: .3f}, dev accuracy {test_accuracy: .3f}')
+            print(f"Epoch #{epoch + 1}: train accuracy {train_accuracy: .3f}, dev accuracy {test_accuracy: .3f}")
     
     return all_train_accuracy, all_test_accuracy
 
@@ -145,15 +145,15 @@ def experiment_dan(model, train_loader, test_loader, lr, epochs):
         all_test_accuracy.append(test_accuracy)
 
         if epoch % 1 == 0:
-            print(f'Epoch #{epoch + 1}: train accuracy {train_accuracy: .3f}, dev accuracy {test_accuracy: .3f}')
+            print(f"Epoch #{epoch + 1}: train accuracy {train_accuracy: .3f}, dev accuracy {test_accuracy: .3f}")
     
     return all_train_accuracy, all_test_accuracy
 
 
 def main():
     # Set up argument parser
-    # parser = argparse.ArgumentParser(description='Run model training based on specified model type')
-    # parser.add_argument('--model', type=str, required=True, help='Model type to train (e.g., BOW)')
+    # parser = argparse.ArgumentParser(description="Run model training based on specified model type")
+    # parser.add_argument("--model", type=str, required=True, help="Model type to train (e.g., BOW)")
 
     # Parse the command-line arguments
     # args = parser.parse_args()
@@ -184,40 +184,40 @@ def main():
 
         # Train and evaluate NN2
         start_time = time.time()
-        print('\n2 layers:')
-        nn2_train_accuracy, nn2_test_accuracy = experiment(NN2BOW(input_size=512, hidden_size=100), train_loader, test_loader)
+        print("\n2 layers:")
+        nn2_train_accuracy, nn2_test_accuracy = experiment(NN2BOW(input_size=512, hidden_size=100), train_loader, test_loader, lr=args.lr)
 
         # Train and evaluate NN3
-        print('\n3 layers:')
-        nn3_train_accuracy, nn3_test_accuracy = experiment(NN3BOW(input_size=512, hidden_size=100), train_loader, test_loader)
+        print("\n3 layers:")
+        nn3_train_accuracy, nn3_test_accuracy = experiment(NN3BOW(input_size=512, hidden_size=100), train_loader, test_loader, lr=args.lr)
 
         # Plot the training accuracy
         plt.figure(figsize=(8, 6))
-        plt.plot(nn2_train_accuracy, label='2 layers')
-        plt.plot(nn3_train_accuracy, label='3 layers')
-        plt.xlabel('Epochs')
-        plt.ylabel('Training Accuracy')
-        plt.title('Training Accuracy for 2, 3 Layer Networks')
+        plt.plot(nn2_train_accuracy, label="2 layers")
+        plt.plot(nn3_train_accuracy, label="3 layers")
+        plt.xlabel("Epochs")
+        plt.ylabel("Training Accuracy")
+        plt.title("Training Accuracy for 2, 3 Layer Networks")
         plt.legend()
         plt.grid()
 
         # Save the training accuracy figure
-        training_accuracy_file = 'train_accuracy.png'
+        training_accuracy_file = "train_accuracy.png"
         plt.savefig(training_accuracy_file)
         print(f"\n\nTraining accuracy plot saved as {training_accuracy_file}")
 
         # Plot the testing accuracy
         plt.figure(figsize=(8, 6))
-        plt.plot(nn2_test_accuracy, label='2 layers')
-        plt.plot(nn3_test_accuracy, label='3 layers')
-        plt.xlabel('Epochs')
-        plt.ylabel('Dev Accuracy')
-        plt.title('Dev Accuracy for 2 and 3 Layer Networks')
+        plt.plot(nn2_test_accuracy, label="2 layers")
+        plt.plot(nn3_test_accuracy, label="3 layers")
+        plt.xlabel("Epochs")
+        plt.ylabel("Dev Accuracy")
+        plt.title("Dev Accuracy for 2 and 3 Layer Networks")
         plt.legend()
         plt.grid()
 
         # Save the testing accuracy figure
-        testing_accuracy_file = 'dev_accuracy.png'
+        testing_accuracy_file = "dev_accuracy.png"
         plt.savefig(testing_accuracy_file)
         print(f"Dev accuracy plot saved as {testing_accuracy_file}\n\n")
 
@@ -226,10 +226,17 @@ def main():
     elif args.model == "DAN":
         start_time = time.time()
 
-        train_data = SentimentDatasetDAN("data/train.txt", embs_path=args.embed_file, max_length=args.max_length)
-        dev_data = SentimentDatasetDAN("data/dev.txt", embs_path=args.embed_file, max_length=args.max_length)
-        train_loader = DataLoader(train_data, batch_size=16, shuffle=True)
-        test_loader = DataLoader(dev_data, batch_size=16, shuffle=False)
+        if args.use_bpe_trainer:
+            print("Train Tokenizer From Scratch!!!")
+            train_data = SentimentDatasetDAN_BPE("data/train.txt", bpe_vocab_size=args.bpe_vocab_size, max_length=args.max_length)
+            dev_data = SentimentDatasetDAN_BPE("data/dev.txt", bpe_vocab_size=args.bpe_vocab_size, max_length=args.max_length)
+            train_loader = DataLoader(train_data, batch_size=16, shuffle=True)
+            test_loader = DataLoader(dev_data, batch_size=16, shuffle=False)
+        else:
+            train_data = SentimentDatasetDAN("data/train.txt", embs_path=args.embed_file, max_length=args.max_length)
+            dev_data = SentimentDatasetDAN("data/dev.txt", embs_path=args.embed_file, max_length=args.max_length)
+            train_loader = DataLoader(train_data, batch_size=16, shuffle=True)
+            test_loader = DataLoader(dev_data, batch_size=16, shuffle=False)
 
         end_time = time.time()
         elapsed_time = end_time - start_time
@@ -237,7 +244,7 @@ def main():
 
         model = DAN(
             use_random_embed=args.use_random_embed,
-            vocab_size=args.vocab_size,
+            vocab_size=args.bpe_vocab_size if args.use_bpe_trainer else args.vocab_size,
             embed_file=args.embed_file,
             freeze_embed=args.freeze_embed,
             input_size=args.input_size,
@@ -247,6 +254,7 @@ def main():
             use_dropout=args.use_dropout,
             dropout_rate=args.dropout_rate
         )
+        print(model)
 
         start_time = time.time()
 
@@ -257,29 +265,29 @@ def main():
         print(f"Model trained in : {elapsed_time} seconds")
 
         plt.figure(figsize=(8, 6))
-        plt.plot(dan_train_acc, label='DAN')
-        plt.xlabel('Epochs')
-        plt.ylabel('Training Accuracy')
-        plt.title('Training Accuracy for DAN Networks')
+        plt.plot(dan_train_acc, label="DAN_BPE" if args.use_bpe_trainer else "DAN")
+        plt.xlabel("Epochs")
+        plt.ylabel("Training Accuracy")
+        plt.title("Training Accuracy for DAN BPE Networks" if args.use_bpe_trainer else "Training Accuracy for DAN Networks")
         plt.legend()
         plt.grid()
 
         # Save the training accuracy figure
-        training_accuracy_file = 'train_accuracy_dan.png'
+        training_accuracy_file = "train_accuracy_dan_bpe.png" if args.use_bpe_trainer else "train_accuracy_dan.png"
         plt.savefig(training_accuracy_file)
         print(f"\n\nTraining accuracy plot saved as {training_accuracy_file}")
 
         # Plot the testing accuracy
         plt.figure(figsize=(8, 6))
-        plt.plot(dan_test_acc, label='DAN')
-        plt.xlabel('Epochs')
-        plt.ylabel('Dev Accuracy')
-        plt.title('Dev Accuracy for DAN Networks')
+        plt.plot(dan_test_acc, label="DAN_BPE" if args.use_bpe_trainer else "DAN")
+        plt.xlabel("Epochs")
+        plt.ylabel("Dev Accuracy")
+        plt.title("Dev Accuracy for DAN BPE Networks" if args.use_bpe_trainer else "Dev Accuracy for DAN Networks")
         plt.legend()
         plt.grid()
 
         # Save the testing accuracy figure
-        testing_accuracy_file = 'dev_accuracy_dan.png'
+        testing_accuracy_file = "dev_accuracy_dan_bpe.png" if args.use_bpe_trainer else "dev_accuracy_dan.png"
         plt.savefig(testing_accuracy_file)
         print(f"Dev accuracy plot saved as {testing_accuracy_file}\n\n")
 
