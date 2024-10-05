@@ -37,7 +37,7 @@ unzip cse256-pa-data.zip
 ### Run Codes
 #### 1. PA 1
 
-##### 1.0 Attention !!!.
+##### 1.0 Attention.
 **You can modify ``hidden_sizes``, ``output_size``, ``use_dropout``, ``dropout_rate``, ``lr``, and ``epochs`` at any time.**
 
 ##### 1.1 If you want to use "DAN" model with random embedding.
