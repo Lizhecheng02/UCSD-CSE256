@@ -1,5 +1,5 @@
 ## This Repo is for CSE 256 LIGN 256 - Statistical Natural Lang Proc - Nakashole [FA24]
-### Author: [Zhecheng Li](https://github.com/Lizhecheng02)
+### Author: [Zhecheng Li](https://github.com/Lizhecheng02) && Professor: [Ndapa Nakashole](https://ndapa.us/)
 
 ### Python Environment
 
@@ -61,7 +61,7 @@ unzip cse256-pa-data.zip
     <img src="./PA1/dev_accuracy_dan.png" width="60%" />
 </div>
 
-##### 1.4 If you want to use "DAN" model with trained BPE tokenizer.
+##### 1.4 If you want to use "DAN" model with new trained BPE tokenizer.
 - Find the ``config.yaml`` file.
 - Change the model to ``"DAN"``.
 - Set the ``use_random_embed`` to ``True``.
