@@ -44,7 +44,7 @@ unzip cse256-pa-data.zip
 - Find the ``config.yaml`` file.
 - Change the model to ``"DAN"``.
 - Set the ``use_random_embed`` to ``True``.
-- You can set the ``vocab_size`` as large as possible, such as ``20000``.
+- You can set the ``vocab_size`` as large as possible, such as ``20,000``.
 - Run ``python main.py`` under PA1 folder.
 
 ##### 1.3 If you want to use "DAN" model with pretrained GloVe embedding.
