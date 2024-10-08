@@ -99,7 +99,10 @@ class DAN(nn.Module):
 
         if self.use_random_embed:
             self.random_embedding = nn.Embedding(self.vocab_size, self.input_size)
-            self.random_embedding.weight.requires_grad = self.freeze_embed
+            if self.freeze_embed:
+                self.random_embedding.weight.requires_grad = False
+            else:
+                self.random_embedding.weight.requires_grad = True
         else:
             if self.embed_file == "./data/glove.6B.50d-relativized.txt":
                 self.input_size = 50
