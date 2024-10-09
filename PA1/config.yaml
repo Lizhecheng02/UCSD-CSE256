@@ -10,7 +10,7 @@ output_size: 64
 num_classes: 1
 use_dropout: True
 dropout_rate: 0.4
-lr: 2.0e-4
+lr: 1.0e-4 # should be a little bit higher if use_random_embed is True
 epochs: 50
 use_bpe_trainer: True
 lower_case: False
