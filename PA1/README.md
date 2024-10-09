@@ -164,3 +164,58 @@ Here are some conclusions from the above experiments:
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 #### Part 3
+
+(3a) **Question:** If we treat the above data as our training set, what is the set of probabilities P (y | the) that maximize the data likelihood? Note: this question is asking you about what the optimal probabilities are independent of any particular setting of the skip-gram vectors.
+
+**Answer:**  
+
+In the sentence "the dog", (x = the, y = dog) appears once; similarly, in "the cat", (x = the, y = cat) appears once, with no other occurrences of x = the. Therefore, the probabilities that maximize the likelihood are: **P (dog|the) = 1 / (1 + 1) = 1 / 2, P (cat|the) = 1 / (1 + 1) = 1 / 2.**
+
+(3b) **Question:** Can these probabilities be nearly achieved with a particular setting of the word vector for ``the``? Give a nearly optimal vector (returns probabilities within 0.01 of the optimum) and a description of why it is optimal.
+
+**Answer:** The vectors for both "dog" and "cat" are (0, 1). From question (3a), we know that P(dog|the) = P(cat|the) = 1 / 2. Therefore, we need to satisfy the following requirement:
+$$
+\exp(v_{\text{the}} \cdot c_{\text{dog}}) \approx \exp(v_{\text{the}} \cdot c_{\text{cat}})
+$$
+It's easy to figure out that we could set the vector of word ``the`` to be like (0, T) (T is a very large constant). In this case, we have:
+$$
+v_{\text{the}} \cdot c_{\text{dog}} = v_{\text{the}} \cdot c_{\text{cat}} = (0, T) \cdot (0, 1) = T.
+$$
+Thus, the answer is (0, T), where T is a sufficiently large constant.
+
+(3c) **Question:** The training examples derived from these sentences.
+
+**Answer:** 
+$$
+(x = \text{the}, y = \text{dog}) \\
+
+(x = \text{dog}, y = \text{the}) \\
+
+(x = \text{the}, y = \text{cat}) \\
+
+(x = \text{cat}, y = \text{the}) \\ 
+
+(x = \text{a}, y = \text{dog}) \\
+
+(x = \text{dog}, y = \text{a}) \\
+
+(x = \text{a}, y = \text{cat}) \\
+
+(x = \text{cat}, y = \text{a}) \\
+$$
+(3d) **Question:** A set of both word and context vectors that nearly optimizes the skip-gram objective. These vectors should give probabilities within 0.01 of the optimum.
+
+**Answer:** Based on the training examples, it is evident that for every possible group \(X, y), P(X|y) = 1 / 2. Using the same reasoning as in (3b) and following the problem's given settings, we can define all embeddings as follows:
+$$
+Word Embeddings \\
+v_{\text{the}} = (1, 0) \\
+v_{\text{a}} = (1, 0) \\
+v_{\text{dog}} = (0, 1) \\
+v_{\text{cat}} = (0, 1) \\
+\\
+Context Embeddings: \\
+c_{\text{the}} = (1, 0) \\
+c_{\text{a}} = (1, 0) \\
+c_{\text{dog}} = (0, 1) \\
+c_{\text{cat}} = (0, 1) \\
+$$
