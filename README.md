@@ -55,7 +55,7 @@ unzip cse256-pa-data.zip
 - The ``input_size`` should be the same as the dimension of the glove embedding, ``50`` or ``300``.
 - Run ``python main.py`` under PA1 folder.
 
-**If you run it successfully using 300d embedding and three layers DAN model, with around 10 epochs, you could get the dev accuracy to about 0.820.**
+**If you run it successfully using 300d embedding and three layers DAN model, with around 10 epochs, you could get the dev accuracy to about 0.820 - 0.830.**
 
 <div style="text-align: center;">
     <img src="./PA1/dev_accuracy_dan.png" width="60%" />

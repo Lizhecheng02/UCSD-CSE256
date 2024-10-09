@@ -1,17 +1,17 @@
 model: "DAN"
 max_length: 32
-use_random_embed: True
-vocab_size: 20000
+use_random_embed: True # set to True when using bpe tokenizer
+vocab_size: 15000 # large enough to cover all tokens. If use bpe tokenizer, should be larger than the bpe_vocab_size
 embed_file: "./data/glove.6B.300d-relativized.txt"
 freeze_embed: False
-input_size: 300
+input_size: 64 # should be the same as the embedding size
 hidden_sizes: [128, 128]
 output_size: 64
 num_classes: 1
 use_dropout: True
 dropout_rate: 0.4
-lr: 1.0e-4
-epochs: 20
+lr: 2.0e-4
+epochs: 50
 use_bpe_trainer: True
 lower_case: False
-bpe_vocab_size: 20000
+bpe_vocab_size: 15000
