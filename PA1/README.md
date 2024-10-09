@@ -12,7 +12,7 @@
 
 #### Part 1
 
-#### 1.1 Some changes to design our new DAN model
+#### 1.1 Main changes to design our new DAN model
 
 - I set `hidden_sizes` as a list to conveniently define the hidden dimensions for all layers in the MLP architecture across the entire DAN model.
 
@@ -84,7 +84,7 @@ To explore the relationship between various hyperparameters and final accuracy, 
 
 Here are some conclusions from the above experiments:
 
-(1) **Max_length via Accuracy**. In experiments 5, 7, and 8, the only variable was `max_length`. Based on the model’s accuracy, setting `max_length` to ``32`` yielded the best results. The poor performance of `max_length = 16` could be attributed to the loss of sentence information due to truncation, as many sentences exceed ``16`` tokens, leading to a drop in semantic content. On the other hand, `max_length = 64` performed slightly worse than ``32``, likely because of the influence of numerous `PAD` tokens. Since the DAN model averages embeddings, an excess of `PAD` tokens may dilute the overall meaning of the sentence.
+(1) **Max Length via Accuracy**. In experiments 5, 7, and 8, the only variable was `max_length`. Based on the model’s accuracy, setting `max_length` to ``32`` yielded the best results. The poor performance of `max_length = 16` could be attributed to the loss of sentence information due to truncation, as many sentences exceed ``16`` tokens, leading to a drop in semantic content. On the other hand, `max_length = 64` performed slightly worse than ``32``, likely because of the influence of numerous `PAD` tokens. Since the DAN model averages embeddings, an excess of `PAD` tokens may dilute the overall meaning of the sentence.
 
 (2) **Embed Dimension via Accuracy**. When comparing experiments 1 with 2 and 3 with 4, the only difference is the `embed_file`. It's evident that higher-dimensional embeddings yield better prediction accuracy, as the ``300-dimensional`` embeddings significantly outperform the ``50-dimensional`` ones. This improvement likely results from the higher-dimensional embeddings storing more semantic information per token, leading to more accurate token representations.
 
@@ -113,11 +113,13 @@ Here are some conclusions from the above experiments:
 
 (1) **Dropout via Accuracy**. Comparing the results of experiment IDs 1 and 2, we observe that setting the dropout rate effectively helps the model reduce overfitting on the training dataset. However, this does not yield any improvement in validation accuracy.
 
-(2) **Pre-trained via Random**. Comparing experiment ID 3 with the results in the table above, we find that training a ``128-dimensional`` embedding from scratch yields worse results than using the pre-trained ``50-dimensional`` GloVe embedding (``0.769`` vs. ``0.791``). This difference is due to the GloVe embedding being trained on a large corpus, allowing it to more accurately represent word meanings. Relying solely on the training dataset is insufficient for fully capturing word semantics.
+(2) **Pre-trained vs. Random**. Comparing experiment ID 3 with the results in the table above, we find that training a ``128-dimensional`` embedding from scratch yields worse results than using the pre-trained ``50-dimensional`` GloVe embedding (``0.769`` vs. ``0.791``). This difference is due to the GloVe embedding being trained on a large corpus, allowing it to more accurately represent word meanings. Relying solely on the training dataset is insufficient for fully capturing word semantics.
 
 (3) **Random Embed Size via Accuracy**. Comparing experiment IDs 3 and 6, we observe that even when using randomly initialized embeddings, the higher-dimensional embeddings achieve significantly better accuracy after the same number of training epochs. This improvement is due to higher dimensions allowing for more information to represent each word.
 
 ##### Achieving an accuracy of 0.77 is still relatively straightforward by training a random embedding solely based on the training data.
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 #### Part 2
 #### 2.1 Where is the code to train a BPE tokenizer?
@@ -158,3 +160,7 @@ Here are some conclusions from the above experiments:
 (2) **BPE Vocab Size via Accuracy**. Based on experiment IDs (1, 5, 7) and (2, 6, 8), we observe that setting the BPE vocabulary size to ``15,000`` yields the best validation accuracy compared to ``20,000`` and ``25,000``. This improvement may be attributed to the lower vocabulary size, which results in each token containing more characters on average. With a constant maximum length of ``32``, this means we can represent more words when the vocabulary size is ``15,000``, potentially enhancing accuracy.
 
 (3) **BPE Tokenizer vs. GloVe Embedding**. To effectively compare the performance of the trained BPE tokenizer with pre-trained GloVe embeddings, I conducted experiments 9 and 10. We found that even when setting the embedding size to match that of the two types of GloVe embeddings, the validation accuracy of our BPE tokenizer still falls short of the GloVe embeddings (``0.750`` vs. ``0.791`` and ``0.758`` vs. ``0.821``). However, we cannot conclude that the BPE tokenizer's method of splitting sentences is inferior to word embeddings. This discrepancy arises because we used randomly initialized embeddings for the BPE tokenizer, which significantly differ from the pre-trained embeddings, as indicated in the previous tables.
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+#### Part 3
