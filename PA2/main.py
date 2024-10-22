@@ -4,7 +4,7 @@ from torch.nn.utils.rnn import pad_sequence
 import os
 from tokenizer import SimpleTokenizer
 from dataset import SpeechesClassificationDataset, LanguageModelingDataset
-from transformer import ClassificationEncoder, Decoder, ClassificationEncoderAlibi
+from transformer import ClassificationEncoder, Decoder, ClassificationEncoderAlibi, ClassificationEncoderWindowAttention
 from tqdm import tqdm
 import torch.nn as nn
 import torch.optim as optim
@@ -168,7 +168,7 @@ def main():
     test_LM_loader_wbush = DataLoader(test_LM_dataset_wbush, batch_size=batch_size, shuffle=True)
 
     # for the classification  task, you will train for a fixed number of epochs like this:
-    classification_encoder = ClassificationEncoderAlibi(
+    classification_encoder = ClassificationEncoderWindowAttention(
         vocab_size=tokenizer.vocab_size,
         embed_size=n_embd,
         num_layers=n_layer,
