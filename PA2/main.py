@@ -57,8 +57,7 @@ def collate_batch(batch):
     padded_sequences = pad_sequence(data, batch_first=True, padding_value=0)
     padded_sequences = padded_sequences[:, :block_size]  # Truncate if longer
     # Add padding if shorter
-    padded_sequences = torch.nn.functional.pad(padded_sequences, (0, max(
-        0, block_size - padded_sequences.shape[1])), "constant", 0)
+    padded_sequences = torch.nn.functional.pad(padded_sequences, (0, max(0, block_size - padded_sequences.shape[1])), "constant", 0)
     labels = torch.stack(labels)
     return padded_sequences, labels
 
