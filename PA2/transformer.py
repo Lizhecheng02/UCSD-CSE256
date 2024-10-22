@@ -94,7 +94,7 @@ class Decoder(nn.Module):
     def make_mask(self, input_ids):
         N, len = input_ids.shape
         mask = torch.tril(torch.ones((len, len))).expand(N, 1, len, len)
-        print(mask.shape)
+        # print(mask.shape)
         return mask.to(self.device)
 
     def forward(self, x):
@@ -105,8 +105,7 @@ class Decoder(nn.Module):
         for layer in self.layers:
             out = layer(out, out, out, mask)
         out = self.fc_out(out)
-        next_token_logits = out[:, -1, :]
-        return next_token_logits
+        return out
 
 
 class Encoder(nn.Module):
@@ -152,7 +151,7 @@ class ClassificationEncoder(nn.Module):
 
     def make_src_mask(self, src):
         src_mask = (src != self.pad_idx).unsqueeze(1).unsqueeze(2)
-        print(src_mask)
+        # print(src_mask)
         return src_mask.to(self.device)
 
     def forward(self, x):

@@ -22,10 +22,10 @@ class SpeechesClassificationDataset(Dataset):
         if not os.path.exists(file_path):
             raise FileNotFoundError(f"The file {file_path} does not exist.")
 
-        with open(file_path, 'r', encoding='utf-8') as file:
+        with open(file_path, "r", encoding="utf-8") as file:
             for line in file:
-                label, text = line.strip().split('\t')
-                if label not in ('0', '1', '2'):
+                label, text = line.strip().split("\t")
+                if label not in ("0", "1", "2"):
                     raise ValueError(f"Invalid label: {label}")
                 if len(text.strip()) == 0:
                     continue
