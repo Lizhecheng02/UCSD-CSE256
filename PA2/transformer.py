@@ -175,9 +175,9 @@ class Decoder(nn.Module):
         self.device = device
 
     def make_mask(self, input_ids):
-        N, len = input_ids.shape
-        mask = torch.tril(torch.ones((len, len))).expand(N, 1, len, len)
-        # print(mask.shape)
+        N, seq_length = input_ids.shape
+        mask = torch.tril(torch.ones((seq_length, seq_length))).expand(N, 1, seq_length, seq_length)
+        # print(mask)
         return mask.to(self.device)
 
     def forward(self, x):
