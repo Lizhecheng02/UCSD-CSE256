@@ -100,14 +100,12 @@ class WindowedSelfAttention(nn.Module):
             start_index = max(0, i - window_size // 2)
             end_index = min(key_len, i + window_size // 2 + 1)
             qk_window = torch.einsum("nqhd, nkhd -> nhqk", [queries[:, i:i + 1], keys[:, start_index:end_index]])
-            # print(qk_window.shape)
             if mask is not None:
                 mask_window = mask[:, :, :, start_index:end_index]
-                # print(mask_window.shape)
                 qk_window = qk_window.masked_fill(mask_window == 0, float("-inf"))
 
             qk_window = qk_window.squeeze(2)
-            attention[:, :, i, :end_index - start_index] = qk_window
+            attention[:, :, i, start_index:end_index] = qk_window
 
         attention = attention / (self.embed_size ** (1 / 2))
         # print(attention.shape)
