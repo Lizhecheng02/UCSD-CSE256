@@ -1,6 +1,15 @@
 import matplotlib.pyplot as plt
 import torch
 import numpy as np
+import os
+
+
+def ensure_directory_exists(directory_path):
+    if not os.path.exists(directory_path):
+        os.makedirs(directory_path)
+        print(f"Directory '{directory_path}' created.")
+    else:
+        print(f"Directory '{directory_path}' already exists.")
 
 
 class Utilities:
@@ -52,7 +61,7 @@ class Utilities:
 
                 ax.set_xticks(np.arange(len(words)))
                 ax.set_yticks(np.arange(len(words)))
-                ax.set_xticklabels(words, rotation=90)
+                ax.set_xticklabels(words)
                 ax.set_yticklabels(words)
 
                 for q in range(len(words)):
@@ -65,6 +74,7 @@ class Utilities:
                 plt.tight_layout()
                 
                 # Save the plot
+                ensure_directory_exists(directory_path="./attention_maps")
                 plt.savefig(f"./attention_maps/attention_map_layer_{j + 1}_head_{head_idx + 1}.png")
                 
                 # Show the plot
