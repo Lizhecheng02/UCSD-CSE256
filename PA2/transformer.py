@@ -214,10 +214,13 @@ class Encoder(nn.Module):
         # positions = torch.arange(0, seq_length).expand(N, seq_length).to(self.device)
         pos_embed = self.position_embedding().unsqueeze(0).expand(N, -1, -1)[:, :seq_length, :]
         # out = self.dropout((self.word_embedding(x) + self.position_embedding(positions)))
+        attention_matrices = []
         out = self.dropout((self.word_embedding(x) + pos_embed))
         for layer in self.layers:
-             out, attention = layer(out, out, out, mask)
-        return out
+            out, attention = layer(out, out, out, mask)
+            attention_matrices.append(attention.detach().cpu())
+        # print(attention_matrices.shape)
+        return out, attention_matrices
 
 
 class ClassificationEncoder(nn.Module):
@@ -241,13 +244,16 @@ class ClassificationEncoder(nn.Module):
     def forward(self, x):
         N, seq_length = x.shape
         mask = self.make_src_mask(x)
+        # print(mask)
         pos_embed = self.position_embedding().unsqueeze(0).expand(N, -1, -1)[:, :seq_length, :]
+        attention_matrices = []
         out = self.dropout((self.word_embedding(x) + pos_embed))
         for layer in self.layers:
-             out, attention = layer(out, out, out, mask)
+            out, attention = layer(out, out, out, mask)
+            attention_matrices.append(attention.detach().cpu())
         out = out.mean(dim=1)
         out = self.classification_head(out)
-        return out
+        return out, attention_matrices
 
 
 class ClassificationEncoderWindowAttention(nn.Module):
@@ -272,12 +278,14 @@ class ClassificationEncoderWindowAttention(nn.Module):
         N, seq_length = x.shape
         mask = self.make_src_mask(x)
         pos_embed = self.position_embedding().unsqueeze(0).expand(N, -1, -1)[:, :seq_length, :]
+        attention_matrices = []
         out = self.dropout((self.word_embedding(x) + pos_embed))
         for layer in self.layers:
-             out, attention = layer(out, out, out, mask)
+            out, attention = layer(out, out, out, mask)
+            attention_matrices.append(attention.detach().cpu())
         out = out.mean(dim=1)
         out = self.classification_head(out)
-        return out
+        return out, attention_matrices
 
 
 class ClassificationEncoderAlibi(nn.Module):
@@ -300,28 +308,31 @@ class ClassificationEncoderAlibi(nn.Module):
     def forward(self, x):
         N, seq_length = x.shape
         mask = self.make_src_mask(x)
+        attention_matrices = []
         out = self.dropout(self.word_embedding(x))
         for layer in self.layers:
-             out, attention = layer(out, out, out, mask, alibi_bias=self.alibi_encoding)
+            out, attention = layer(out, out, out, mask, alibi_bias=self.alibi_encoding)
+            attention_matrices.append(attention.detach().cpu())
         out = out.mean(dim=1)
         out = self.classification_head(out)
-        return out
+        return out, attention_matrices
 
 
 if __name__ == "__main__":
-    # encoder_model = Encoder(
-    #     vocab_size=1000,
-    #     embed_size=64,
-    #     num_layers=2,
-    #     heads=2,
-    #     device="cpu",
-    #     forward_expansion=4,
-    #     dropout=0.1,
-    #     max_length=16,
-    #     pad_idx=0
-    # )
-    # output = encoder_model(torch.tensor([[1, 2, 3, 4, 5, 0, 0, 0], [6, 7, 8, 9, 10, 0, 0, 0]]))
-    # print(output.shape)
+    encoder_model = Encoder(
+        vocab_size=1000,
+        embed_size=64,
+        num_layers=2,
+        heads=2,
+        device="cpu",
+        forward_expansion=4,
+        dropout=0.1,
+        max_length=16,
+        pad_idx=0
+    )
+    output, attention_matrices = encoder_model(torch.tensor([[1, 2, 3, 4, 5, 0, 0, 0], [6, 7, 8, 9, 10, 0, 0, 0]]))
+    print(output.shape)
+    print(len(attention_matrices))
 
     # encoder_model = ClassificationEncoder(
     #     vocab_size=1000,
@@ -340,16 +351,16 @@ if __name__ == "__main__":
     # print(output.shape)
     # print(torch.max(output.data, 1))
 
-    decoder_model = Decoder(
-        vocab_size=1000,
-        embed_size=64,
-        num_layers=2,
-        heads=2,
-        device="cpu",
-        forward_expansion=4,
-        dropout=0.1,
-        max_length=16
-    )
-    output = decoder_model(torch.tensor([[1, 2, 3, 4, 5], [6, 7, 8, 9, 10]]))
-    print(output)
-    print(output.shape)
+    # decoder_model = Decoder(
+    #     vocab_size=1000,
+    #     embed_size=64,
+    #     num_layers=2,
+    #     heads=2,
+    #     device="cpu",
+    #     forward_expansion=4,
+    #     dropout=0.1,
+    #     max_length=16
+    # )
+    # output = decoder_model(torch.tensor([[1, 2, 3, 4, 5], [6, 7, 8, 9, 10]]))
+    # print(output)
+    # print(output.shape)

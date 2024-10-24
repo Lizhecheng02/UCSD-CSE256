@@ -8,6 +8,7 @@ from transformer import ClassificationEncoder, Decoder, ClassificationEncoderAli
 from tqdm import tqdm
 import torch.nn as nn
 import torch.optim as optim
+from utilities import Utilities
 
 
 seed = 42
@@ -20,7 +21,7 @@ block_size = 32  # Maximum context length for predictions
 learning_rate = 5e-4  # Learning rate for the optimizer
 n_embd = 64  # Embedding dimension
 n_head = 2  # Number of attention heads
-n_layer = 6  # Number of transformer layers
+n_layer = 4  # Number of transformer layers
 
 
 eval_interval = 50  # How often to evaluate train and test perplexity during training
@@ -70,7 +71,7 @@ def compute_classifier_accuracy(classifier, data_loader):
     with torch.no_grad():
         for X, Y in data_loader:
             X, Y = X.to(device), Y.to(device)
-            outputs = classifier(X)
+            outputs, attention_matrices = classifier(X)
             _, predicted = torch.max(outputs.data, 1)
             total_correct += (predicted == Y).sum().item()
             total_samples += Y.size(0)
@@ -168,7 +169,7 @@ def main():
     test_LM_loader_wbush = DataLoader(test_LM_dataset_wbush, batch_size=batch_size, shuffle=True)
 
     # for the classification  task, you will train for a fixed number of epochs like this:
-    classification_encoder = ClassificationEncoderWindowAttention(
+    classification_encoder = ClassificationEncoder(
         vocab_size=tokenizer.vocab_size,
         embed_size=n_embd,
         num_layers=n_layer,
@@ -184,19 +185,24 @@ def main():
     print("The total parameters for encoder classification model is:", total_params)
     optimizer = optim.Adam(classification_encoder.parameters(), lr=learning_rate)
     criterion = nn.CrossEntropyLoss()
-    # for epoch in range(epochs_CLS):
-    #     print("Epoch:", epoch + 1)
-    #     for xb, yb in tqdm(train_CLS_loader, total=len(train_CLS_loader)):
-    #         xb, yb = xb.to(device), yb.to(device)
-    #         output = classification_encoder(xb)
-    #         loss = criterion(output, yb)
-    #         optimizer.zero_grad()  
-    #         loss.backward()       
-    #         optimizer.step() 
-    #         # CLS training code here
-    #     print(f"Epoch {epoch + 1} / {epochs_CLS}, Loss: {loss.item()}")
-    #     accuracy = compute_classifier_accuracy(classifier=classification_encoder, data_loader=test_CLS_loader)
-    #     print(f"Epoch {epoch + 1} / {epochs_CLS}, Accuracy: {accuracy: .2f}%")
+    # utility = Utilities(tokenizer=tokenizer, model=classification_encoder)
+    # utility.sanity_check(sentence="In fact, I will be right there with you.", block_size=12)
+    for epoch in range(epochs_CLS):
+        print("Epoch:", epoch + 1)
+        for xb, yb in tqdm(train_CLS_loader, total=len(train_CLS_loader)):
+            xb, yb = xb.to(device), yb.to(device)
+            output, attention_matrices = classification_encoder(xb)
+            loss = criterion(output, yb)
+            optimizer.zero_grad()  
+            loss.backward()       
+            optimizer.step() 
+            # CLS training code here
+        print(f"Epoch {epoch + 1} / {epochs_CLS}, Loss: {loss.item()}")
+        accuracy = compute_classifier_accuracy(classifier=classification_encoder, data_loader=test_CLS_loader)
+        print(f"Epoch {epoch + 1} / {epochs_CLS}, Accuracy: {accuracy: .2f}%")
+
+    utility = Utilities(tokenizer=tokenizer, model=classification_encoder)
+    utility.sanity_check(sentence="In fact, I will be right there with you.", block_size=12)
 
     # for the language modeling task, you will iterate over the training data for a fixed number of iterations like this:
     decoder_only_model = Decoder(
@@ -212,28 +218,28 @@ def main():
     total_params = sum(p.numel() for p in decoder_only_model.parameters())
     print("The total parameters for decoder only model is:", total_params)
     optimizer = optim.Adam(decoder_only_model.parameters(), lr=learning_rate)
-    for i, (xb, yb) in tqdm(enumerate(train_LM_loader), total=len(train_LM_loader)):
-        if i >= max_iters:
-            break
-        xb, yb = xb.to(device), yb.to(device)
-        output = decoder_only_model(xb)
-        output = output.view(-1, output.size(-1))
-        yb = yb.view(-1)
-        loss = criterion(output, yb)
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
-        if (i + 1) % eval_interval == 0:
-            print(f"Step {i + 1} / {max_iters}, Loss: {loss.item()}")
-            print("Evaluating on hbush data ....")
-            perplexity_hbush = compute_perplexity_with_logits_output(decoder_only_model, test_LM_loader_hbush, criterion, eval_iters)
-            print(f"Step {i + 1} / {max_iters}, H-Bush Perplexity: {perplexity_hbush: .2f}")
-            print("Evaluating on obama data ....")
-            perplexity_obama = compute_perplexity_with_logits_output(decoder_only_model, test_LM_loader_obama, criterion, eval_iters)
-            print(f"Step {i + 1} / {max_iters}, Obama Perplexity: {perplexity_obama: .2f}")
-            print("Evaluating on wbush data ....")
-            perplexity_wbush = compute_perplexity_with_logits_output(decoder_only_model, test_LM_loader_wbush, criterion, eval_iters)
-            print(f"Step {i + 1} / {max_iters}, W-Bush Perplexity: {perplexity_wbush: .2f}")
+    # for i, (xb, yb) in tqdm(enumerate(train_LM_loader), total=len(train_LM_loader)):
+    #     if i >= max_iters:
+    #         break
+    #     xb, yb = xb.to(device), yb.to(device)
+    #     output = decoder_only_model(xb)
+    #     output = output.view(-1, output.size(-1))
+    #     yb = yb.view(-1)
+    #     loss = criterion(output, yb)
+    #     optimizer.zero_grad()
+    #     loss.backward()
+    #     optimizer.step()
+    #     if (i + 1) % eval_interval == 0:
+    #         print(f"Step {i + 1} / {max_iters}, Loss: {loss.item()}")
+    #         print("Evaluating on hbush data ....")
+    #         perplexity_hbush = compute_perplexity_with_logits_output(decoder_only_model, test_LM_loader_hbush, criterion, eval_iters)
+    #         print(f"Step {i + 1} / {max_iters}, H-Bush Perplexity: {perplexity_hbush: .2f}")
+    #         print("Evaluating on obama data ....")
+    #         perplexity_obama = compute_perplexity_with_logits_output(decoder_only_model, test_LM_loader_obama, criterion, eval_iters)
+    #         print(f"Step {i + 1} / {max_iters}, Obama Perplexity: {perplexity_obama: .2f}")
+    #         print("Evaluating on wbush data ....")
+    #         perplexity_wbush = compute_perplexity_with_logits_output(decoder_only_model, test_LM_loader_wbush, criterion, eval_iters)
+    #         print(f"Step {i + 1} / {max_iters}, W-Bush Perplexity: {perplexity_wbush: .2f}")
     
         # LM training code here
 
