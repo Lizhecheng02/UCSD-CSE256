@@ -42,6 +42,8 @@ class Utilities:
         # Display the number of attention maps
         print("Number of attention maps:", len(attn_maps))
 
+        ensure_directory_exists(directory_path="./attention_maps")
+
         # Visualize and save the attention maps
         for j, attn_map in enumerate(attn_maps):
             for head_idx in range(attn_map.size(1)):
@@ -70,11 +72,10 @@ class Utilities:
 
                 ax.xaxis.tick_top()  
                 fig.colorbar(cax, ax=ax)
-                plt.title(f"Attention Map Layer {j + 1} Head {head_idx + 1}")
+                plt.title(f"Attention Map Layer {j + 1} Head {head_idx + 1}", pad=40, fontsize=15)
                 plt.tight_layout()
                 
                 # Save the plot
-                ensure_directory_exists(directory_path="./attention_maps")
                 plt.savefig(f"./attention_maps/attention_map_layer_{j + 1}_head_{head_idx + 1}.png")
                 
                 # Show the plot

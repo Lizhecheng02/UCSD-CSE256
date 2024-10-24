@@ -120,15 +120,15 @@ class WindowedSelfAttention(nn.Module):
     
 
 class TransformerBlock(nn.Module):
-    def __init__(self, embed_size, heads, dropout, forward_expansion):
+    def __init__(self, embed_size, heads, dropout, feed_forward_dimension):
         super(TransformerBlock, self).__init__()
         self.attention = SelfAttention(embed_size, heads)
         self.norm1 = nn.LayerNorm(embed_size)
         self.norm2 = nn.LayerNorm(embed_size)
         self.feed_forward = nn.Sequential(
-            nn.Linear(embed_size, forward_expansion * embed_size),
+            nn.Linear(embed_size, feed_forward_dimension),
             nn.ReLU(),
-            nn.Linear(forward_expansion * embed_size, embed_size)
+            nn.Linear(feed_forward_dimension, embed_size)
         )
 
         self.dropout = nn.Dropout(dropout)
@@ -142,15 +142,15 @@ class TransformerBlock(nn.Module):
 
 
 class TransformerBlockWindowAttention(nn.Module):
-    def __init__(self, embed_size, heads, dropout, forward_expansion, window_size):
+    def __init__(self, embed_size, heads, dropout, feed_forward_dimension, window_size):
         super(TransformerBlockWindowAttention, self).__init__()
         self.attention = WindowedSelfAttention(embed_size, heads, window_size)
         self.norm1 = nn.LayerNorm(embed_size)
         self.norm2 = nn.LayerNorm(embed_size)
         self.feed_forward = nn.Sequential(
-            nn.Linear(embed_size, forward_expansion * embed_size),
+            nn.Linear(embed_size, feed_forward_dimension),
             nn.ReLU(),
-            nn.Linear(forward_expansion * embed_size, embed_size)
+            nn.Linear(feed_forward_dimension, embed_size)
         )
 
         self.dropout = nn.Dropout(dropout)
@@ -164,12 +164,12 @@ class TransformerBlockWindowAttention(nn.Module):
 
 
 class Decoder(nn.Module):
-    def __init__(self, vocab_size, embed_size, num_layers, heads, device, forward_expansion, dropout, max_length):
+    def __init__(self, vocab_size, embed_size, num_layers, heads, device, feed_forward_dimension, dropout, max_length):
         super(Decoder, self).__init__()
         self.embed_size = embed_size
         self.word_embedding = nn.Embedding(vocab_size, embed_size)
         self.position_embedding = PositionalEncoding(embed_size, max_length)
-        self.layers = nn.ModuleList([TransformerBlock(embed_size, heads, dropout, forward_expansion) for _ in range(num_layers)])
+        self.layers = nn.ModuleList([TransformerBlock(embed_size, heads, dropout, feed_forward_dimension) for _ in range(num_layers)])
         self.fc_out = nn.Linear(embed_size, vocab_size)
         self.dropout = nn.Dropout(dropout)
         self.device = device
@@ -192,14 +192,14 @@ class Decoder(nn.Module):
 
 
 class Encoder(nn.Module):
-    def __init__(self, vocab_size, embed_size, num_layers, heads, device, forward_expansion, dropout, max_length, pad_idx):
+    def __init__(self, vocab_size, embed_size, num_layers, heads, device, feed_forward_dimension, dropout, max_length, pad_idx):
         super(Encoder, self).__init__()
         self.embed_size = embed_size
         self.device = device
         self.word_embedding = nn.Embedding(vocab_size, embed_size)
         # self.position_embedding = nn.Embedding(max_length, embed_size)
         self.position_embedding = PositionalEncoding(embed_size, max_length)
-        self.layers = nn.ModuleList([TransformerBlock(embed_size, heads, dropout, forward_expansion) for _ in range(num_layers)])
+        self.layers = nn.ModuleList([TransformerBlock(embed_size, heads, dropout, feed_forward_dimension) for _ in range(num_layers)])
         self.dropout = nn.Dropout(dropout)
         self.pad_idx = pad_idx
 
@@ -224,16 +224,17 @@ class Encoder(nn.Module):
 
 
 class ClassificationEncoder(nn.Module):
-    def __init__(self, vocab_size, embed_size, num_layers, heads, device, forward_expansion, dropout, max_length, pad_idx, num_classes):
+    def __init__(self, vocab_size, embed_size, num_layers, heads, device, feed_forward_dimension, dropout, max_length, pad_idx, cls_hidden_size, num_classes):
         super(ClassificationEncoder, self).__init__()
         self.embed_size = embed_size
         self.device = device
         self.word_embedding = nn.Embedding(vocab_size, embed_size)
         # self.position_embedding = nn.Embedding(max_length, embed_size)
         self.position_embedding = PositionalEncoding(embed_size, max_length)
-        self.layers = nn.ModuleList([TransformerBlock(embed_size, heads, dropout, forward_expansion) for _ in range(num_layers)])
+        self.layers = nn.ModuleList([TransformerBlock(embed_size, heads, dropout, feed_forward_dimension) for _ in range(num_layers)])
         self.dropout = nn.Dropout(dropout)
-        self.classification_head = nn.Linear(embed_size, num_classes)
+        self.classification_hidden = nn.Linear(embed_size, cls_hidden_size)
+        self.classification_head = nn.Linear(cls_hidden_size, num_classes)
         self.pad_idx = pad_idx
 
     def make_src_mask(self, src):
@@ -252,21 +253,23 @@ class ClassificationEncoder(nn.Module):
             out, attention = layer(out, out, out, mask)
             attention_matrices.append(attention.detach().cpu())
         out = out.mean(dim=1)
+        out = self.classification_hidden(out)
         out = self.classification_head(out)
         return out, attention_matrices
 
 
 class ClassificationEncoderWindowAttention(nn.Module):
-    def __init__(self, vocab_size, embed_size, num_layers, heads, device, forward_expansion, dropout, max_length, pad_idx, num_classes, window_size=16):
+    def __init__(self, vocab_size, embed_size, num_layers, heads, device, feed_forward_dimension, dropout, max_length, pad_idx, cls_hidden_size, num_classes, window_size=16):
         super(ClassificationEncoderWindowAttention, self).__init__()
         self.embed_size = embed_size
         self.device = device
         self.word_embedding = nn.Embedding(vocab_size, embed_size)
         # self.position_embedding = nn.Embedding(max_length, embed_size)
         self.position_embedding = PositionalEncoding(embed_size, max_length)
-        self.layers = nn.ModuleList([TransformerBlockWindowAttention(embed_size, heads, dropout, forward_expansion, window_size) for _ in range(num_layers)])
+        self.layers = nn.ModuleList([TransformerBlockWindowAttention(embed_size, heads, dropout, feed_forward_dimension, window_size) for _ in range(num_layers)])
         self.dropout = nn.Dropout(dropout)
-        self.classification_head = nn.Linear(embed_size, num_classes)
+        self.classification_hidden = nn.Linear(embed_size, cls_hidden_size)
+        self.classification_head = nn.Linear(cls_hidden_size, num_classes)
         self.pad_idx = pad_idx
 
     def make_src_mask(self, src):
@@ -284,19 +287,21 @@ class ClassificationEncoderWindowAttention(nn.Module):
             out, attention = layer(out, out, out, mask)
             attention_matrices.append(attention.detach().cpu())
         out = out.mean(dim=1)
+        out = self.classification_hidden(out)
         out = self.classification_head(out)
         return out, attention_matrices
 
 
 class ClassificationEncoderAlibi(nn.Module):
-    def __init__(self, vocab_size, embed_size, num_layers, heads, device, forward_expansion, dropout, max_length, pad_idx, num_classes):
+    def __init__(self, vocab_size, embed_size, num_layers, heads, device, feed_forward_dimension, dropout, max_length, pad_idx, cls_hidden_size, num_classes):
         super(ClassificationEncoderAlibi, self).__init__()
         self.embed_size = embed_size
         self.device = device
         self.word_embedding = nn.Embedding(vocab_size, embed_size)
-        self.layers = nn.ModuleList([TransformerBlock(embed_size, heads, dropout, forward_expansion) for _ in range(num_layers)])
+        self.layers = nn.ModuleList([TransformerBlock(embed_size, heads, dropout, feed_forward_dimension) for _ in range(num_layers)])
         self.dropout = nn.Dropout(dropout)
-        self.classification_head = nn.Linear(embed_size, num_classes)
+        self.classification_hidden = nn.Linear(embed_size, cls_hidden_size)
+        self.classification_head = nn.Linear(cls_hidden_size, num_classes)
         self.pad_idx = pad_idx
         self.alibi_encoding = alibi_encoding(seq_len=max_length, num_heads=heads)
 
@@ -314,6 +319,7 @@ class ClassificationEncoderAlibi(nn.Module):
             out, attention = layer(out, out, out, mask, alibi_bias=self.alibi_encoding)
             attention_matrices.append(attention.detach().cpu())
         out = out.mean(dim=1)
+        out = self.classification_hidden(out)
         out = self.classification_head(out)
         return out, attention_matrices
 
@@ -325,7 +331,7 @@ if __name__ == "__main__":
         num_layers=2,
         heads=2,
         device="cpu",
-        forward_expansion=4,
+        feed_forward_dimension=100,
         dropout=0.1,
         max_length=16,
         pad_idx=0
@@ -334,33 +340,34 @@ if __name__ == "__main__":
     print(output.shape)
     print(len(attention_matrices))
 
-    # encoder_model = ClassificationEncoder(
-    #     vocab_size=1000,
-    #     embed_size=64,
-    #     num_layers=2,
-    #     heads=2,
-    #     device="cpu",
-    #     forward_expansion=4,
-    #     dropout=0.1,
-    #     max_length=16,
-    #     pad_idx=0,
-    #     num_classes=3
-    # )
-    # output = encoder_model(torch.tensor([[1, 2, 3, 4, 5, 0, 0, 0], [6, 7, 8, 9, 10, 0, 0, 0]]))
-    # print(output)
-    # print(output.shape)
-    # print(torch.max(output.data, 1))
+    encoder_model = ClassificationEncoder(
+        vocab_size=1000,
+        embed_size=64,
+        num_layers=2,
+        heads=2,
+        device="cpu",
+        feed_forward_dimension=100,
+        dropout=0.1,
+        max_length=16,
+        pad_idx=0,
+        cls_hidden_size=50,
+        num_classes=3
+    )
+    output = encoder_model(torch.tensor([[1, 2, 3, 4, 5, 0, 0, 0], [6, 7, 8, 9, 10, 0, 0, 0]]))
+    print(output)
+    print(output.shape)
+    print(torch.max(output.data, 1))
 
-    # decoder_model = Decoder(
-    #     vocab_size=1000,
-    #     embed_size=64,
-    #     num_layers=2,
-    #     heads=2,
-    #     device="cpu",
-    #     forward_expansion=4,
-    #     dropout=0.1,
-    #     max_length=16
-    # )
-    # output = decoder_model(torch.tensor([[1, 2, 3, 4, 5], [6, 7, 8, 9, 10]]))
-    # print(output)
-    # print(output.shape)
+    decoder_model = Decoder(
+        vocab_size=1000,
+        embed_size=64,
+        num_layers=2,
+        heads=2,
+        device="cpu",
+        feed_forward_dimension=4,
+        dropout=0.1,
+        max_length=16
+    )
+    output = decoder_model(torch.tensor([[1, 2, 3, 4, 5], [6, 7, 8, 9, 10]]))
+    print(output)
+    print(output.shape)
