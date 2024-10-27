@@ -1,6 +1,12 @@
 ## This Repo is for CSE 256 LIGN 256 - Statistical Natural Lang Proc - Nakashole [FA24]
 ### Author: [Zhecheng Li](https://github.com/Lizhecheng02) && Professor: [Ndapa Nakashole](https://ndapa.us/)
 
+----------------------------------------------------------------------------------------------
+
+#### If you are only interested in code for PA1, [the repo is here](https://github.com/Lizhecheng02/UCSD-CSE256-PA1).
+
+----------------------------------------------------------------------------------------------
+
 ### Python Environment
 
 #### 1. Install Packages

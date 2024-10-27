@@ -9,6 +9,7 @@ from tqdm import tqdm
 import torch.nn as nn
 import torch.optim as optim
 from utilities import Utilities
+import time
 
 
 seed = 42
@@ -187,6 +188,8 @@ def main():
     criterion = nn.CrossEntropyLoss()
     # utility = Utilities(tokenizer=tokenizer, model=classification_encoder)
     # utility.sanity_check(sentence="In fact, I will be right there with you.", block_size=12)
+
+    classification_start_time = time.time()
     for epoch in range(epochs_CLS):
         print("Epoch:", epoch + 1)
         for xb, yb in tqdm(train_CLS_loader, total=len(train_CLS_loader)):
@@ -200,6 +203,8 @@ def main():
         print(f"Epoch {epoch + 1} / {epochs_CLS}, Loss: {loss.item()}")
         accuracy = compute_classifier_accuracy(classifier=classification_encoder, data_loader=test_CLS_loader)
         print(f"Epoch {epoch + 1} / {epochs_CLS}, Accuracy: {accuracy: .2f}%")
+    classification_end_time = time.time()
+    print(f"Encoder Classification Training and Evaluation Time: {classification_end_time - classification_start_time: .2f} seconds")
 
     utility = Utilities(tokenizer=tokenizer, model=classification_encoder)
     utility.sanity_check(sentence="In fact, I will be right there with you.", block_size=12)
@@ -218,6 +223,8 @@ def main():
     total_params = sum(p.numel() for p in decoder_only_model.parameters())
     print("The total parameters for decoder only model is:", total_params)
     optimizer = optim.Adam(decoder_only_model.parameters(), lr=learning_rate)
+    
+    decoder_start_time = time.time()
     for i, (xb, yb) in tqdm(enumerate(train_LM_loader), total=len(train_LM_loader)):
         if i >= max_iters:
             break
@@ -240,7 +247,8 @@ def main():
             print("Evaluating on wbush data ....")
             perplexity_wbush = compute_perplexity_with_logits_output(decoder_only_model, test_LM_loader_wbush, criterion, eval_iters)
             print(f"Step {i + 1} / {max_iters}, W-Bush Perplexity: {perplexity_wbush: .2f}")
-    
+    decoder_end_time = time.time()
+    print(f"Decoder Training and Evaluation Time: {decoder_end_time - decoder_start_time: .2f} seconds")
         # LM training code here
 
 
