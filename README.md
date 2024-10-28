@@ -111,12 +111,15 @@ All datasets are already in the GitHub repo.
 
 You can change the parameters in ``main.py``, but you should be able to get around 86-87% accuracy using default values.
 
-<img src="./PA2/acc_plots/encoder_classic_mean_acc.png" alt="encoder_classic_mean_acc" style="zoom:72%;" />
+<div style="text-align: center;">
+    <img src="./PA2/acc_plots/encoder_classic_mean_acc.png" width="60%" />
+</div>
 
 The code will draw attention plots after training for one specific sentence, they are saved under ``attention_maps`` folder. Here is an example:
 
-<img src="./PA2/attention_maps/attention_map_layer_4_head_1.png" alt="attention_map_layer_4_head_1" style="zoom:60%;" />
-
+<div style="text-align: center;">
+    <img src="./PA2/attention_maps/attention_map_layer_4_head_1.png" width="60%" />
+</div>
 
 ##### 2.2 Decoder
 
@@ -128,8 +131,12 @@ The code will draw attention plots after training for one specific sentence, the
 
 You can also change the parameters in ``main.py``, but you should be able to get around 6.5 loss using default values.
 
-<img src="./PA2/acc_plots/decoder_loss.png" alt="decoder_loss" style="zoom:60%;" />
+<div style="text-align: center;">
+    <img src="./PA2/acc_plots/decoder_loss.png" width="60%" />
+</div>
 
 The code will also draw attention plots after training for one specific sentence, they are also saved under ``attention_maps`` folder. We can see the difference caused by attention mask. Here is an example:
 
-<img src="./PA2/attention_maps/decoder_attention_map_layer_4_head_1.png" alt="decoder_attention_map_layer_4_head_1" style="zoom:60%;" />
+<div style="text-align: center;">
+    <img src="./PA2/attention_maps/decoder_attention_map_layer_4_head_1.png" width="60%" />
+</div>
