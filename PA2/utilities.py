@@ -17,7 +17,7 @@ class Utilities:
         self.tokenizer = tokenizer
         self.model = model
 
-    def sanity_check(self, sentence, block_size):
+    def sanity_check(self, sentence, block_size, type="encoder"):
         plt.rcParams.update({"lines.linewidth": 2})
         plt.rcParams.update({"lines.markersize": 8})
         plt.rcParams.update({"lines.markeredgewidth": 1})
@@ -76,7 +76,10 @@ class Utilities:
                 plt.tight_layout()
                 
                 # Save the plot
-                plt.savefig(f"./attention_maps/attention_map_layer_{j + 1}_head_{head_idx + 1}.png")
+                if type =="encoder":
+                    plt.savefig(f"./attention_maps/attention_map_layer_{j + 1}_head_{head_idx + 1}.png")
+                elif type == "decoder":
+                    plt.savefig(f"./attention_maps/decoder_attention_map_layer_{j + 1}_head_{head_idx + 1}.png")
                 
                 # Show the plot
                 plt.show()

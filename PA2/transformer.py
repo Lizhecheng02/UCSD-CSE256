@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-import math
 
 
 class PositionalEncoding(nn.Module):
@@ -185,10 +184,12 @@ class Decoder(nn.Module):
         mask = self.make_mask(x)
         pos_embed = self.position_embedding().unsqueeze(0).expand(N, -1, -1)[:, :seq_length, :]
         out = self.dropout(self.word_embedding(x) + pos_embed)
+        attention_matrices = []
         for layer in self.layers:
             out, attention = layer(out, out, out, mask)
+            attention_matrices.append(attention.detach().cpu())
         out = self.fc_out(out)
-        return out
+        return out, attention_matrices
 
 
 class Encoder(nn.Module):

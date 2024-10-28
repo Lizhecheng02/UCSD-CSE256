@@ -8,9 +8,10 @@ from transformer import ClassificationEncoder, Decoder, ClassificationEncoderAli
 from tqdm import tqdm
 import torch.nn as nn
 import torch.optim as optim
-from utilities import Utilities
+from utilities import Utilities, ensure_directory_exists
 import time
 import argparse
+import matplotlib.pyplot as plt
 
 
 seed = 42
@@ -19,7 +20,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 """ Hyperparameters to use for training to roughly match the numbers mentioned in the assignment description """
 batch_size = 16  # Number of independent sequences  we will process in parallel
 block_size = 32  # Maximum context length for predictions
-learning_rate = 1e-3  # Learning rate for the optimizer
+learning_rate = 1e-4  # Learning rate for the optimizer
 n_embd = 64  # Embedding dimension
 n_head = 2  # Number of attention heads
 n_layer = 4  # Number of transformer layers
@@ -34,6 +35,13 @@ eval_iters = 100  # Number of iterations to evaluate perplexity on the test set
 n_hidden = 50  # Hidden size for the classifier
 n_output = 3  # Output size for the classifier, we have 3 classes
 epochs_CLS = 15  # epochs for classifier training
+
+
+plt.rcParams.update({"lines.linewidth": 2})
+plt.rcParams.update({"lines.markersize": 8})
+plt.rcParams.update({"lines.markeredgewidth": 1})
+plt.rcParams["font.family"] = "Times New Roman"
+plt.rcParams["font.weight"] = "bold"
 
 
 def load_texts(directory):
@@ -109,7 +117,7 @@ def compute_perplexity_with_logits_output(decoderLMmodel, data_loader, criterion
     losses = []
     for X, Y in data_loader:
         X, Y = X.to(device), Y.to(device)
-        output = decoderLMmodel(X)
+        output, attention_matrices = decoderLMmodel(X)
         output = output.view(-1, output.size(-1))
         Y = Y.view(-1)
         loss = criterion(output, Y)
@@ -218,6 +226,7 @@ def main():
         criterion = nn.CrossEntropyLoss()
 
         classification_start_time = time.time()
+        accs = []
         for epoch in range(epochs_CLS):
             print("Epoch:", epoch + 1)
             for xb, yb in tqdm(train_CLS_loader, total=len(train_CLS_loader)):
@@ -229,9 +238,24 @@ def main():
                 optimizer.step()
             print(f"Epoch {epoch + 1} / {epochs_CLS}, Loss: {loss.item()}")
             accuracy = compute_classifier_accuracy(classifier=classification_encoder, data_loader=test_CLS_loader)
+            accs.append(accuracy)
             print(f"Epoch {epoch + 1} / {epochs_CLS}, Accuracy: {accuracy: .2f}%")
         classification_end_time = time.time()
         print(f"Encoder Classification Training and Evaluation Time: {classification_end_time - classification_start_time: .2f} seconds")
+
+        plt.figure(figsize=(9, 5))
+        plt.plot(range(1, epochs_CLS + 1), accs, marker="o", color="b", label="Accuracy")
+        plt.title(f"Accuracy over Epochs for {args.run.upper()}")
+        plt.xlabel("Epoch")
+        plt.ylabel("Accuracy (%)")
+        plt.xticks(range(1, epochs_CLS + 1))
+        plt.legend()
+        plt.grid()
+        for i, acc in enumerate(accs):
+            plt.text(i + 1, acc - 1.5, f"{acc: .2f}", ha="center", va="top")
+        ensure_directory_exists(directory_path="./acc_plots")
+        plt.savefig(f"./acc_plots/{args.run}_acc.png")
+        plt.show()
 
         utility = Utilities(tokenizer=tokenizer, model=classification_encoder)
         utility.sanity_check(sentence="In fact, I will be right there with you.", block_size=12)
@@ -251,32 +275,87 @@ def main():
         total_params = sum(p.numel() for p in decoder_only_model.parameters())
         print("The total parameters for decoder only model is:", total_params)
         optimizer = optim.Adam(decoder_only_model.parameters(), lr=learning_rate)
-        
+        criterion = nn.CrossEntropyLoss()
+
+        losses = []
+        h_bush_perplexities = []
+        obama_perplexities = []
+        w_bush_perplexities = []
         decoder_start_time = time.time()
         for i, (xb, yb) in tqdm(enumerate(train_LM_loader), total=len(train_LM_loader)):
             if i >= max_iters:
                 break
             xb, yb = xb.to(device), yb.to(device)
-            output = decoder_only_model(xb)
+            output, attention_matrices = decoder_only_model(xb)
             output = output.view(-1, output.size(-1))
             yb = yb.view(-1)
             loss = criterion(output, yb)
             optimizer.zero_grad()
             loss.backward()
+            losses.append(loss.item())
             optimizer.step()
             if (i + 1) % eval_interval == 0:
                 print(f"Step {i + 1} / {max_iters}, Loss: {loss.item()}")
                 print("Evaluating on hbush data ....")
                 perplexity_hbush = compute_perplexity_with_logits_output(decoder_only_model, test_LM_loader_hbush, criterion, eval_iters)
+                h_bush_perplexities.append(perplexity_hbush)
                 print(f"Step {i + 1} / {max_iters}, H-Bush Perplexity: {perplexity_hbush: .2f}")
                 print("Evaluating on obama data ....")
                 perplexity_obama = compute_perplexity_with_logits_output(decoder_only_model, test_LM_loader_obama, criterion, eval_iters)
+                obama_perplexities.append(perplexity_obama)
                 print(f"Step {i + 1} / {max_iters}, Obama Perplexity: {perplexity_obama: .2f}")
                 print("Evaluating on wbush data ....")
                 perplexity_wbush = compute_perplexity_with_logits_output(decoder_only_model, test_LM_loader_wbush, criterion, eval_iters)
+                w_bush_perplexities.append(perplexity_wbush)
                 print(f"Step {i + 1} / {max_iters}, W-Bush Perplexity: {perplexity_wbush: .2f}")
         decoder_end_time = time.time()
         print(f"Decoder Training and Evaluation Time: {decoder_end_time - decoder_start_time: .2f} seconds")
+
+        utility = Utilities(tokenizer=tokenizer, model=decoder_only_model)
+        utility.sanity_check(sentence="For inspiration, we need look no further than our own neighbors.", block_size=12, type="decoder")
+
+        plt.figure(figsize=(12, 6))
+        plt.plot(range(1, max_iters + 1), losses, marker="o", color="b", label="loss")
+        plt.title(f"Training Loss for {args.run.upper()}")
+        plt.xlabel("Iteration")
+        plt.ylabel("Loss")
+        plt.legend()
+        plt.grid()
+        ensure_directory_exists(directory_path="./acc_plots")
+        plt.savefig(f"./acc_plots/{args.run}_loss.png")
+        plt.show()
+
+        plt.figure(figsize=(10, 15))
+        plt.subplot(3, 1, 1)
+        plt.plot(range(eval_interval, max_iters + eval_interval, eval_interval), h_bush_perplexities, marker="o", color="green", label="H Bush Perplexity")
+        plt.xlabel("Iteration")
+        plt.ylabel("Perplexity")
+        plt.xticks(range(eval_interval, max_iters + eval_interval, eval_interval))
+        plt.legend()
+        for i, hbush in enumerate(h_bush_perplexities):
+            plt.text((i + 1) * eval_interval, hbush - 25, f"{hbush: .2f}", ha="center", va="top")
+
+        plt.subplot(3, 1, 2)
+        plt.plot(range(eval_interval, max_iters + eval_interval, eval_interval), obama_perplexities, marker="o", color="black", label="Obama Perplexity")
+        plt.xlabel("Iteration")
+        plt.ylabel("Perplexity")
+        plt.xticks(range(eval_interval, max_iters + eval_interval, eval_interval))
+        plt.legend()
+        for i, obama in enumerate(obama_perplexities):
+            plt.text((i + 1) * eval_interval, obama - 25, f"{obama: .2f}", ha="center", va="top")
+
+        plt.subplot(3, 1, 3)
+        plt.plot(range(eval_interval, max_iters + eval_interval, eval_interval), w_bush_perplexities, marker="o", color="red", label="W Bush Perplexity")
+        plt.xlabel("Iteration")
+        plt.ylabel("Perplexity")
+        plt.xticks(range(eval_interval, max_iters + eval_interval, eval_interval))
+        plt.legend()
+        for i, wbush in enumerate(w_bush_perplexities):
+            plt.text((i + 1) * eval_interval, wbush - 25, f"{wbush: .2f}", ha="center", va="top")
+
+        plt.tight_layout()
+        plt.savefig(f"./acc_plots/{args.run}_all_eval.png")
+        plt.show()
 
 
 if __name__ == "__main__":
