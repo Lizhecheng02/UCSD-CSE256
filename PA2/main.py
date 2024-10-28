@@ -10,13 +10,13 @@ import torch.nn as nn
 import torch.optim as optim
 from utilities import Utilities
 import time
+import argparse
 
 
 seed = 42
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-""" Hyperparameters to use for training to roughly match 
-the numbers mentioned in the assignment description """
+""" Hyperparameters to use for training to roughly match the numbers mentioned in the assignment description """
 batch_size = 16  # Number of independent sequences  we will process in parallel
 block_size = 32  # Maximum context length for predictions
 learning_rate = 1e-3  # Learning rate for the optimizer
@@ -88,16 +88,13 @@ def compute_perplexity(decoderLMmodel, data_loader, eval_iters=100):
     losses = []
     for X, Y in data_loader:
         X, Y = X.to(device), Y.to(device)
-        # your model should be computing the cross entropy loss
         loss = decoderLMmodel(X, Y)
         losses.append(loss.item())
-        # total_loss += loss.item()
         if len(losses) >= eval_iters:
             break
 
     losses = torch.tensor(losses)
     mean_loss = losses.mean()
-    # Calculate perplexity as exp(mean loss)
     perplexity = torch.exp(mean_loss).item()
 
     decoderLMmodel.train()
@@ -117,13 +114,11 @@ def compute_perplexity_with_logits_output(decoderLMmodel, data_loader, criterion
         Y = Y.view(-1)
         loss = criterion(output, Y)
         losses.append(loss.item())
-        # total_loss += loss.item()
         if len(losses) >= eval_iters:
             break
 
     losses = torch.tensor(losses)
     mean_loss = losses.mean()
-    # Calculate perplexity as exp(mean loss)
     perplexity = torch.exp(mean_loss).item()
 
     decoderLMmodel.train()
@@ -131,125 +126,157 @@ def compute_perplexity_with_logits_output(decoderLMmodel, data_loader, criterion
 
 
 def main():
+    parser = argparse.ArgumentParser(description="instruction")
+    parser.add_argument("--run", type=str, required=True)
+    args = parser.parse_args()
 
     print("Loading data and creating tokenizer ...")
     texts = load_texts("speechesdataset")
-    # create a tokenizer from the data
     tokenizer = SimpleTokenizer(" ".join(texts))
     print("Vocabulary size is", tokenizer.vocab_size)
 
-    train_CLS_dataset = SpeechesClassificationDataset(tokenizer, "speechesdataset/train_CLS.tsv")
-    test_CLS_dataset = SpeechesClassificationDataset(tokenizer, "speechesdataset/test_CLS.tsv")
-    train_CLS_loader = DataLoader(train_CLS_dataset, batch_size=batch_size, collate_fn=collate_batch, shuffle=True)
-    test_CLS_loader = DataLoader(test_CLS_dataset, batch_size=batch_size, collate_fn=collate_batch, shuffle=True)
+    if "encoder" in args.run:
+        train_CLS_dataset = SpeechesClassificationDataset(tokenizer, "speechesdataset/train_CLS.tsv")
+        test_CLS_dataset = SpeechesClassificationDataset(tokenizer, "speechesdataset/test_CLS.tsv")
+        train_CLS_loader = DataLoader(train_CLS_dataset, batch_size=batch_size, collate_fn=collate_batch, shuffle=True)
+        test_CLS_loader = DataLoader(test_CLS_dataset, batch_size=batch_size, collate_fn=collate_batch, shuffle=True)
 
-    inputfile = "speechesdataset/train_LM.txt"
-    with open(inputfile, "r", encoding="utf-8") as f:
-        lmtrainText = f.read()
+    if "decoder" in args.run:
+        inputfile = "speechesdataset/train_LM.txt"
+        with open(inputfile, "r", encoding="utf-8") as f:
+            lmtrainText = f.read()
 
-    inputfile = "speechesdataset/test_LM_hbush.txt"
-    with open(inputfile, "r", encoding="utf-8") as f:
-        lm_test_hbush_text = f.read()
+        inputfile = "speechesdataset/test_LM_hbush.txt"
+        with open(inputfile, "r", encoding="utf-8") as f:
+            lm_test_hbush_text = f.read()
 
-    inputfile = "speechesdataset/test_LM_obama.txt"
-    with open(inputfile, "r", encoding="utf-8") as f:
-        lm_test_obama_text = f.read()
+        inputfile = "speechesdataset/test_LM_obama.txt"
+        with open(inputfile, "r", encoding="utf-8") as f:
+            lm_test_obama_text = f.read()
 
-    inputfile = "speechesdataset/test_LM_wbush.txt"
-    with open(inputfile, "r", encoding="utf-8") as f:
-        lm_test_wbush_text = f.read()
+        inputfile = "speechesdataset/test_LM_wbush.txt"
+        with open(inputfile, "r", encoding="utf-8") as f:
+            lm_test_wbush_text = f.read()
 
-    train_LM_dataset = LanguageModelingDataset(tokenizer, lmtrainText,  block_size)
-    test_LM_dataset_hbush = LanguageModelingDataset(tokenizer, lm_test_hbush_text, block_size)
-    test_LM_dataset_obama = LanguageModelingDataset(tokenizer, lm_test_obama_text, block_size)
-    test_LM_dataset_wbush = LanguageModelingDataset(tokenizer, lm_test_wbush_text, block_size)
-    train_LM_loader = DataLoader(train_LM_dataset, batch_size=batch_size, shuffle=True)
-    test_LM_loader_hbush = DataLoader(test_LM_dataset_hbush, batch_size=batch_size, shuffle=True)
-    test_LM_loader_obama = DataLoader(test_LM_dataset_obama, batch_size=batch_size, shuffle=True)
-    test_LM_loader_wbush = DataLoader(test_LM_dataset_wbush, batch_size=batch_size, shuffle=True)
+        train_LM_dataset = LanguageModelingDataset(tokenizer, lmtrainText,  block_size)
+        test_LM_dataset_hbush = LanguageModelingDataset(tokenizer, lm_test_hbush_text, block_size)
+        test_LM_dataset_obama = LanguageModelingDataset(tokenizer, lm_test_obama_text, block_size)
+        test_LM_dataset_wbush = LanguageModelingDataset(tokenizer, lm_test_wbush_text, block_size)
+        train_LM_loader = DataLoader(train_LM_dataset, batch_size=batch_size, shuffle=True)
+        test_LM_loader_hbush = DataLoader(test_LM_dataset_hbush, batch_size=batch_size, shuffle=True)
+        test_LM_loader_obama = DataLoader(test_LM_dataset_obama, batch_size=batch_size, shuffle=True)
+        test_LM_loader_wbush = DataLoader(test_LM_dataset_wbush, batch_size=batch_size, shuffle=True)
 
-    # for the classification  task, you will train for a fixed number of epochs like this:
-    classification_encoder = ClassificationEncoder(
-        vocab_size=tokenizer.vocab_size,
-        embed_size=n_embd,
-        num_layers=n_layer,
-        heads=n_head,
-        device=device,
-        feed_forward_dimension=100,
-        dropout=0.1,
-        max_length=block_size,
-        pad_idx=0,
-        cls_hidden_size=n_hidden,
-        num_classes=n_output
-    )
-    total_params = sum(p.numel() for p in classification_encoder.parameters())
-    print("The total parameters for encoder classification model is:", total_params)
-    optimizer = optim.Adam(classification_encoder.parameters(), lr=learning_rate)
-    criterion = nn.CrossEntropyLoss()
-    # utility = Utilities(tokenizer=tokenizer, model=classification_encoder)
-    # utility.sanity_check(sentence="In fact, I will be right there with you.", block_size=12)
+    if args.run == "encoder_classic_mean":
+        classification_encoder = ClassificationEncoder(
+            vocab_size=tokenizer.vocab_size,
+            embed_size=n_embd,
+            num_layers=n_layer,
+            heads=n_head,
+            device=device,
+            feed_forward_dimension=100,
+            dropout=0.1,
+            max_length=block_size,
+            pad_idx=0,
+            cls_hidden_size=n_hidden,
+            num_classes=n_output
+        )
+    elif args.run == "encoder_window_attention":
+        classification_encoder = ClassificationEncoderWindowAttention(
+            vocab_size=tokenizer.vocab_size,
+            embed_size=n_embd,
+            num_layers=n_layer,
+            heads=n_head,
+            device=device,
+            feed_forward_dimension=100,
+            dropout=0.1,
+            max_length=block_size,
+            pad_idx=0,
+            cls_hidden_size=n_hidden,
+            num_classes=n_output,
+            window_size=16
+        )
+    elif args.run == "encoder_alibi":
+        classification_encoder = ClassificationEncoderAlibi(
+            vocab_size=tokenizer.vocab_size,
+            embed_size=n_embd,
+            num_layers=n_layer,
+            heads=n_head,
+            device=device,
+            feed_forward_dimension=100,
+            dropout=0.1,
+            max_length=block_size,
+            pad_idx=0,
+            cls_hidden_size=n_hidden,
+            num_classes=n_output
+        )
+    if "encoder" in args.run:
+        print("Training Encoder Classification Model ......")
+        total_params = sum(p.numel() for p in classification_encoder.parameters())
+        print("The total parameters for encoder classification model is:", total_params)
+        optimizer = optim.Adam(classification_encoder.parameters(), lr=learning_rate)
+        criterion = nn.CrossEntropyLoss()
 
-    classification_start_time = time.time()
-    for epoch in range(epochs_CLS):
-        print("Epoch:", epoch + 1)
-        for xb, yb in tqdm(train_CLS_loader, total=len(train_CLS_loader)):
+        classification_start_time = time.time()
+        for epoch in range(epochs_CLS):
+            print("Epoch:", epoch + 1)
+            for xb, yb in tqdm(train_CLS_loader, total=len(train_CLS_loader)):
+                xb, yb = xb.to(device), yb.to(device)
+                output, attention_matrices = classification_encoder(xb)
+                loss = criterion(output, yb)
+                optimizer.zero_grad()  
+                loss.backward()       
+                optimizer.step()
+            print(f"Epoch {epoch + 1} / {epochs_CLS}, Loss: {loss.item()}")
+            accuracy = compute_classifier_accuracy(classifier=classification_encoder, data_loader=test_CLS_loader)
+            print(f"Epoch {epoch + 1} / {epochs_CLS}, Accuracy: {accuracy: .2f}%")
+        classification_end_time = time.time()
+        print(f"Encoder Classification Training and Evaluation Time: {classification_end_time - classification_start_time: .2f} seconds")
+
+        utility = Utilities(tokenizer=tokenizer, model=classification_encoder)
+        utility.sanity_check(sentence="In fact, I will be right there with you.", block_size=12)
+
+    if "decoder" in args.run:
+        decoder_only_model = Decoder(
+            vocab_size=tokenizer.vocab_size,
+            embed_size=n_embd,
+            num_layers=n_layer,
+            heads=n_head,
+            device=device,
+            feed_forward_dimension=100,
+            dropout=0.1,
+            max_length=block_size
+        )
+        print("Training Decoder Generation Model ......")
+        total_params = sum(p.numel() for p in decoder_only_model.parameters())
+        print("The total parameters for decoder only model is:", total_params)
+        optimizer = optim.Adam(decoder_only_model.parameters(), lr=learning_rate)
+        
+        decoder_start_time = time.time()
+        for i, (xb, yb) in tqdm(enumerate(train_LM_loader), total=len(train_LM_loader)):
+            if i >= max_iters:
+                break
             xb, yb = xb.to(device), yb.to(device)
-            output, attention_matrices = classification_encoder(xb)
+            output = decoder_only_model(xb)
+            output = output.view(-1, output.size(-1))
+            yb = yb.view(-1)
             loss = criterion(output, yb)
-            optimizer.zero_grad()  
-            loss.backward()       
-            optimizer.step() 
-            # CLS training code here
-        print(f"Epoch {epoch + 1} / {epochs_CLS}, Loss: {loss.item()}")
-        accuracy = compute_classifier_accuracy(classifier=classification_encoder, data_loader=test_CLS_loader)
-        print(f"Epoch {epoch + 1} / {epochs_CLS}, Accuracy: {accuracy: .2f}%")
-    classification_end_time = time.time()
-    print(f"Encoder Classification Training and Evaluation Time: {classification_end_time - classification_start_time: .2f} seconds")
-
-    utility = Utilities(tokenizer=tokenizer, model=classification_encoder)
-    utility.sanity_check(sentence="In fact, I will be right there with you.", block_size=12)
-
-    # for the language modeling task, you will iterate over the training data for a fixed number of iterations like this:
-    decoder_only_model = Decoder(
-        vocab_size=tokenizer.vocab_size,
-        embed_size=n_embd,
-        num_layers=n_layer,
-        heads=n_head,
-        device=device,
-        feed_forward_dimension=100,
-        dropout=0.1,
-        max_length=block_size
-    )
-    total_params = sum(p.numel() for p in decoder_only_model.parameters())
-    print("The total parameters for decoder only model is:", total_params)
-    optimizer = optim.Adam(decoder_only_model.parameters(), lr=learning_rate)
-    
-    decoder_start_time = time.time()
-    for i, (xb, yb) in tqdm(enumerate(train_LM_loader), total=len(train_LM_loader)):
-        if i >= max_iters:
-            break
-        xb, yb = xb.to(device), yb.to(device)
-        output = decoder_only_model(xb)
-        output = output.view(-1, output.size(-1))
-        yb = yb.view(-1)
-        loss = criterion(output, yb)
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
-        if (i + 1) % eval_interval == 0:
-            print(f"Step {i + 1} / {max_iters}, Loss: {loss.item()}")
-            print("Evaluating on hbush data ....")
-            perplexity_hbush = compute_perplexity_with_logits_output(decoder_only_model, test_LM_loader_hbush, criterion, eval_iters)
-            print(f"Step {i + 1} / {max_iters}, H-Bush Perplexity: {perplexity_hbush: .2f}")
-            print("Evaluating on obama data ....")
-            perplexity_obama = compute_perplexity_with_logits_output(decoder_only_model, test_LM_loader_obama, criterion, eval_iters)
-            print(f"Step {i + 1} / {max_iters}, Obama Perplexity: {perplexity_obama: .2f}")
-            print("Evaluating on wbush data ....")
-            perplexity_wbush = compute_perplexity_with_logits_output(decoder_only_model, test_LM_loader_wbush, criterion, eval_iters)
-            print(f"Step {i + 1} / {max_iters}, W-Bush Perplexity: {perplexity_wbush: .2f}")
-    decoder_end_time = time.time()
-    print(f"Decoder Training and Evaluation Time: {decoder_end_time - decoder_start_time: .2f} seconds")
-        # LM training code here
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+            if (i + 1) % eval_interval == 0:
+                print(f"Step {i + 1} / {max_iters}, Loss: {loss.item()}")
+                print("Evaluating on hbush data ....")
+                perplexity_hbush = compute_perplexity_with_logits_output(decoder_only_model, test_LM_loader_hbush, criterion, eval_iters)
+                print(f"Step {i + 1} / {max_iters}, H-Bush Perplexity: {perplexity_hbush: .2f}")
+                print("Evaluating on obama data ....")
+                perplexity_obama = compute_perplexity_with_logits_output(decoder_only_model, test_LM_loader_obama, criterion, eval_iters)
+                print(f"Step {i + 1} / {max_iters}, Obama Perplexity: {perplexity_obama: .2f}")
+                print("Evaluating on wbush data ....")
+                perplexity_wbush = compute_perplexity_with_logits_output(decoder_only_model, test_LM_loader_wbush, criterion, eval_iters)
+                print(f"Step {i + 1} / {max_iters}, W-Bush Perplexity: {perplexity_wbush: .2f}")
+        decoder_end_time = time.time()
+        print(f"Decoder Training and Evaluation Time: {decoder_end_time - decoder_start_time: .2f} seconds")
 
 
 if __name__ == "__main__":
