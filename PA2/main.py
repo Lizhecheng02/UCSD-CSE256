@@ -316,9 +316,9 @@ def main():
 
         plt.figure(figsize=(12, 6))
         plt.plot(range(1, max_iters + 1), losses, marker="o", color="b", label="loss")
-        plt.title(f"Training Loss for {args.run.upper()}")
-        plt.xlabel("Iteration")
-        plt.ylabel("Loss")
+        plt.title(f"Training Loss for {args.run.upper()}", fontsize=15)
+        plt.xlabel("Iteration", fontsize=14)
+        plt.ylabel("Loss", fontsize=14)
         plt.legend()
         plt.grid()
         ensure_directory_exists(directory_path="./acc_plots")
@@ -328,8 +328,8 @@ def main():
         plt.figure(figsize=(10, 15))
         plt.subplot(3, 1, 1)
         plt.plot(range(eval_interval, max_iters + eval_interval, eval_interval), h_bush_perplexities, marker="o", color="green", label="H Bush Perplexity")
-        plt.xlabel("Iteration")
-        plt.ylabel("Perplexity")
+        plt.xlabel("Iteration", fontsize=14)
+        plt.ylabel("Perplexity", fontsize=14)
         plt.xticks(range(eval_interval, max_iters + eval_interval, eval_interval))
         plt.legend()
         for i, hbush in enumerate(h_bush_perplexities):
@@ -337,8 +337,8 @@ def main():
 
         plt.subplot(3, 1, 2)
         plt.plot(range(eval_interval, max_iters + eval_interval, eval_interval), obama_perplexities, marker="o", color="black", label="Obama Perplexity")
-        plt.xlabel("Iteration")
-        plt.ylabel("Perplexity")
+        plt.xlabel("Iteration", fontsize=14)
+        plt.ylabel("Perplexity", fontsize=14)
         plt.xticks(range(eval_interval, max_iters + eval_interval, eval_interval))
         plt.legend()
         for i, obama in enumerate(obama_perplexities):
@@ -346,8 +346,8 @@ def main():
 
         plt.subplot(3, 1, 3)
         plt.plot(range(eval_interval, max_iters + eval_interval, eval_interval), w_bush_perplexities, marker="o", color="red", label="W Bush Perplexity")
-        plt.xlabel("Iteration")
-        plt.ylabel("Perplexity")
+        plt.xlabel("Iteration", fontsize=14)
+        plt.ylabel("Perplexity", fontsize=14)
         plt.xticks(range(eval_interval, max_iters + eval_interval, eval_interval))
         plt.legend()
         for i, wbush in enumerate(w_bush_perplexities):
