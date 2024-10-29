@@ -129,7 +129,6 @@ class TransformerBlock(nn.Module):
             nn.ReLU(),
             nn.Linear(feed_forward_dimension, embed_size)
         )
-
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, value, key, query, mask, alibi_bias=None):
@@ -151,7 +150,6 @@ class TransformerBlockWindowAttention(nn.Module):
             nn.ReLU(),
             nn.Linear(feed_forward_dimension, embed_size)
         )
-
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, value, key, query, mask, alibi_bias=None):
@@ -169,6 +167,7 @@ class Decoder(nn.Module):
         self.word_embedding = nn.Embedding(vocab_size, embed_size)
         self.position_embedding = PositionalEncoding(embed_size, max_length)
         self.layers = nn.ModuleList([TransformerBlock(embed_size, heads, dropout, feed_forward_dimension) for _ in range(num_layers)])
+        self.norm = nn.LayerNorm(embed_size)
         self.fc_out = nn.Linear(embed_size, vocab_size)
         self.dropout = nn.Dropout(dropout)
         self.device = device
@@ -188,7 +187,7 @@ class Decoder(nn.Module):
         for layer in self.layers:
             out, attention = layer(out, out, out, mask)
             attention_matrices.append(attention.detach().cpu())
-        out = self.fc_out(out)
+        out = self.fc_out(self.norm(out))
         return out, attention_matrices
 
 
