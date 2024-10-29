@@ -20,7 +20,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 """ Hyperparameters to use for training to roughly match the numbers mentioned in the assignment description """
 batch_size = 16  # Number of independent sequences  we will process in parallel
 block_size = 32  # Maximum context length for predictions
-learning_rate = 1e-4  # Learning rate for the optimizer
+learning_rate = 1e-3  # Learning rate for the optimizer
 n_embd = 64  # Embedding dimension
 n_head = 2  # Number of attention heads
 n_layer = 4  # Number of transformer layers

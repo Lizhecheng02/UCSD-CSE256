@@ -303,7 +303,7 @@ class ClassificationEncoderAlibi(nn.Module):
         self.classification_hidden = nn.Linear(embed_size, cls_hidden_size)
         self.classification_head = nn.Linear(cls_hidden_size, num_classes)
         self.pad_idx = pad_idx
-        self.alibi_encoding = alibi_encoding(seq_len=max_length, num_heads=heads)
+        self.heads = heads
 
     def make_src_mask(self, src):
         src_mask = (src != self.pad_idx).unsqueeze(1).unsqueeze(2)
@@ -312,11 +312,12 @@ class ClassificationEncoderAlibi(nn.Module):
 
     def forward(self, x):
         N, seq_length = x.shape
+        alibi_encoding = alibi_encoding(seq_len=seq_length, num_heads=self.heads)
         mask = self.make_src_mask(x)
         attention_matrices = []
         out = self.dropout(self.word_embedding(x))
         for layer in self.layers:
-            out, attention = layer(out, out, out, mask, alibi_bias=self.alibi_encoding)
+            out, attention = layer(out, out, out, mask, alibi_bias=alibi_encoding)
             attention_matrices.append(attention.detach().cpu())
         out = out.mean(dim=1)
         out = self.classification_hidden(out)
