@@ -66,6 +66,53 @@ class SelfAttention(nn.Module):
         return out, attention
 
 
+class DeBERTaDisentangledAttention(nn.Module):
+    def __init__(self, embed_size, heads, max_position_embeddings):
+        super().__init__()
+        self.embed_size = embed_size
+        self.heads = heads
+        self.head_dim = embed_size // heads
+        assert (self.head_dim * heads == embed_size), "Embedding size needs to be divisible by heads"
+        
+        self.query = nn.Linear(embed_size, embed_size)
+        self.key_content = nn.Linear(embed_size, embed_size)
+        self.key_position = nn.Linear(embed_size, embed_size)
+        self.value = nn.Linear(embed_size, embed_size)
+        self.output = nn.Linear(embed_size, embed_size)
+        self.fc_out = nn.Linear(embed_size, embed_size)
+
+        self.position_embedding = nn.Embedding(2 * max_position_embeddings, embed_size)
+        self.max_position_embeddings = max_position_embeddings
+
+    def forward(self, value, key, query, mask):
+        N = query.shape[0]
+        value_len, key_len, query_len = value.shape[1], key.shape[1], query.shape[1]
+    
+        position_ids = torch.arange(query_len, dtype=torch.long, device=query.device)
+        relative_position_matrix = position_ids[None, :] - position_ids[:, None]
+        relative_position_matrix += self.max_position_embeddings
+        position_embeddings = self.position_embedding(relative_position_matrix)
+        
+        values = self.value(value).reshape(N, value_len, self.heads, self.head_dim)
+        queries = self.query(query).reshape(N, query_len, self.heads, self.head_dim)
+        keys_content = self.key_content(key).reshape(N, key_len, self.heads, self.head_dim)
+        keys_position = self.key_position(position_embeddings).reshape(1, query_len, query_len, self.heads, self.head_dim)
+        
+        attention_scores_content = torch.einsum("nqhd, nkhd -> nhqk", [queries, keys_content])
+        attention_scores_position = torch.einsum("nqhd, nqkhd -> nhqk", [queries, keys_position])
+
+        attention_scores = attention_scores_content + attention_scores_position
+        if mask is not None:
+            attention_scores = attention_scores.masked_fill(mask == 0, float("-inf"))
+
+        attention = torch.softmax(attention_scores / (self.embed_size ** 0.5), dim=-1)
+
+        out = torch.einsum("nhqk, nkhd -> nqhd", [attention, values]).reshape(N, query_len, self.heads * self.head_dim)
+        out = self.fc_out(out)
+
+        return out, attention
+    
+
 class WindowedSelfAttention(nn.Module):
     def __init__(self, embed_size, heads, window_size):
         super(WindowedSelfAttention, self).__init__()
@@ -133,6 +180,27 @@ class TransformerBlock(nn.Module):
 
     def forward(self, value, key, query, mask, alibi_bias=None):
         output, attention = self.attention(value, key, query, mask, alibi_bias)
+        x = self.dropout(self.norm1(output + query))
+        forward = self.feed_forward(x)
+        out = self.dropout(self.norm2(forward + x))
+        return out, attention
+    
+
+class TransformerBlockDeberta(nn.Module):
+    def __init__(self, embed_size, heads, dropout, feed_forward_dimension):
+        super(TransformerBlockDeberta, self).__init__()
+        self.attention = DeBERTaDisentangledAttention(embed_size, heads, max_position_embeddings=32)
+        self.norm1 = nn.LayerNorm(embed_size)
+        self.norm2 = nn.LayerNorm(embed_size)
+        self.feed_forward = nn.Sequential(
+            nn.Linear(embed_size, feed_forward_dimension),
+            nn.ReLU(),
+            nn.Linear(feed_forward_dimension, embed_size)
+        )
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(self, value, key, query, mask):
+        output, attention = self.attention(value, key, query, mask)
         x = self.dropout(self.norm1(output + query))
         forward = self.feed_forward(x)
         out = self.dropout(self.norm2(forward + x))
@@ -258,6 +326,41 @@ class ClassificationEncoder(nn.Module):
         return out, attention_matrices
 
 
+class ClassificationEncoderDeberta(nn.Module):
+    def __init__(self, vocab_size, embed_size, num_layers, heads, device, feed_forward_dimension, dropout, max_length, pad_idx, cls_hidden_size, num_classes):
+        super(ClassificationEncoderDeberta, self).__init__()
+        self.embed_size = embed_size
+        self.device = device
+        self.word_embedding = nn.Embedding(vocab_size, embed_size)
+        # self.position_embedding = nn.Embedding(max_length, embed_size)
+        self.position_embedding = PositionalEncoding(embed_size, max_length)
+        self.layers = nn.ModuleList([TransformerBlockDeberta(embed_size, heads, dropout, feed_forward_dimension) for _ in range(num_layers)])
+        self.dropout = nn.Dropout(dropout)
+        self.classification_hidden = nn.Linear(embed_size, cls_hidden_size)
+        self.classification_head = nn.Linear(cls_hidden_size, num_classes)
+        self.pad_idx = pad_idx
+
+    def make_src_mask(self, src):
+        src_mask = (src != self.pad_idx).unsqueeze(1).unsqueeze(2)
+        # print(src_mask)
+        return src_mask.to(self.device)
+
+    def forward(self, x):
+        N, seq_length = x.shape
+        mask = self.make_src_mask(x)
+        # print(mask)
+        pos_embed = self.position_embedding().unsqueeze(0).expand(N, -1, -1)[:, :seq_length, :]
+        attention_matrices = []
+        out = self.dropout((self.word_embedding(x) + pos_embed))
+        for layer in self.layers:
+            out, attention = layer(out, out, out, mask)
+            attention_matrices.append(attention.detach().cpu())
+        out = out.mean(dim=1)
+        out = self.classification_hidden(out)
+        out = self.classification_head(out)
+        return out, attention_matrices
+
+
 class ClassificationEncoderWindowAttention(nn.Module):
     def __init__(self, vocab_size, embed_size, num_layers, heads, device, feed_forward_dimension, dropout, max_length, pad_idx, cls_hidden_size, num_classes, window_size=16):
         super(ClassificationEncoderWindowAttention, self).__init__()
@@ -312,12 +415,12 @@ class ClassificationEncoderAlibi(nn.Module):
 
     def forward(self, x):
         N, seq_length = x.shape
-        alibi_encoding = alibi_encoding(seq_len=seq_length, num_heads=self.heads)
+        alibi_bias = alibi_encoding(seq_len=seq_length, num_heads=self.heads)
         mask = self.make_src_mask(x)
         attention_matrices = []
         out = self.dropout(self.word_embedding(x))
         for layer in self.layers:
-            out, attention = layer(out, out, out, mask, alibi_bias=alibi_encoding)
+            out, attention = layer(out, out, out, mask, alibi_bias=alibi_bias)
             attention_matrices.append(attention.detach().cpu())
         out = out.mean(dim=1)
         out = self.classification_hidden(out)

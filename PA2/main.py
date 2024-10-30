@@ -4,7 +4,7 @@ from torch.nn.utils.rnn import pad_sequence
 import os
 from tokenizer import SimpleTokenizer
 from dataset import SpeechesClassificationDataset, LanguageModelingDataset
-from transformer import ClassificationEncoder, Decoder, ClassificationEncoderAlibi, ClassificationEncoderWindowAttention
+from transformer import ClassificationEncoder, Decoder, ClassificationEncoderAlibi, ClassificationEncoderWindowAttention, ClassificationEncoderDeberta
 from tqdm import tqdm
 import torch.nn as nn
 import torch.optim as optim
@@ -218,6 +218,21 @@ def main():
             cls_hidden_size=n_hidden,
             num_classes=n_output
         )
+    elif args.run == "encoder_deberta":
+        classification_encoder = ClassificationEncoderDeberta(
+            vocab_size=tokenizer.vocab_size,
+            embed_size=n_embd,
+            num_layers=n_layer,
+            heads=n_head,
+            device=device,
+            feed_forward_dimension=100,
+            dropout=0.1,
+            max_length=block_size,
+            pad_idx=0,
+            cls_hidden_size=n_hidden,
+            num_classes=n_output
+        )
+
     if "encoder" in args.run:
         print("Training Encoder Classification Model ......")
         total_params = sum(p.numel() for p in classification_encoder.parameters())
