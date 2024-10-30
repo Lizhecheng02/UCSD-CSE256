@@ -224,7 +224,7 @@ def main():
             pad_idx=0,
             cls_hidden_size=n_hidden,
             num_classes=n_output,
-            window_size=16
+            window_size=6
         )
     elif args.run == "encoder_alibi":
         classification_encoder = ClassificationEncoderAlibi(
@@ -295,7 +295,7 @@ def main():
         plt.show()
 
         utility = Utilities(tokenizer=tokenizer, model=classification_encoder)
-        utility.sanity_check(sentence="In fact, I will be right there with you.", block_size=12)
+        utility.sanity_check(sentence="In fact, I will be right there with you.", block_size=12, run_name=args.run)
 
     if "decoder" in args.run:
         decoder_only_model = Decoder(
@@ -349,7 +349,7 @@ def main():
         print(f"Decoder Training and Evaluation Time: {decoder_end_time - decoder_start_time: .2f} seconds")
 
         utility = Utilities(tokenizer=tokenizer, model=decoder_only_model)
-        utility.sanity_check(sentence="For inspiration, we need look no further than our own neighbors.", block_size=12, type="decoder")
+        utility.sanity_check(sentence="For inspiration, we need look no further than our own neighbors.", block_size=12, run_name=args.run, type="decoder")
 
         plt.figure(figsize=(12, 6))
         plt.plot(range(1, max_iters + 1), losses, marker="o", color="b", label="loss")

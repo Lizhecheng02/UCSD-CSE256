@@ -17,7 +17,7 @@ class Utilities:
         self.tokenizer = tokenizer
         self.model = model
 
-    def sanity_check(self, sentence, block_size, type="encoder"):
+    def sanity_check(self, sentence, block_size, run_name, type="encoder"):
         plt.rcParams.update({"lines.linewidth": 2})
         plt.rcParams.update({"lines.markersize": 8})
         plt.rcParams.update({"lines.markeredgewidth": 1})
@@ -72,12 +72,12 @@ class Utilities:
 
                 ax.xaxis.tick_top()  
                 fig.colorbar(cax, ax=ax)
-                plt.title(f"Attention Map Layer {j + 1} Head {head_idx + 1}", pad=40, fontsize=15)
+                plt.title(f"{run_name.upper()} Attention Map Layer {j + 1} Head {head_idx + 1}", pad=40, fontsize=15)
                 plt.tight_layout()
                 
                 # Save the plot
                 if type =="encoder":
-                    plt.savefig(f"./attention_maps/attention_map_layer_{j + 1}_head_{head_idx + 1}.png")
+                    plt.savefig(f"./attention_maps/{run_name}_attention_map_layer_{j + 1}_head_{head_idx + 1}.png")
                 elif type == "decoder":
                     plt.savefig(f"./attention_maps/decoder_attention_map_layer_{j + 1}_head_{head_idx + 1}.png")
                 
