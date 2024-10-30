@@ -324,6 +324,41 @@ class ClassificationEncoder(nn.Module):
         out = self.classification_hidden(out)
         out = self.classification_head(out)
         return out, attention_matrices
+    
+
+class ClassificationEncoderCLSToken(nn.Module):
+    def __init__(self, vocab_size, embed_size, num_layers, heads, device, feed_forward_dimension, dropout, max_length, pad_idx, cls_hidden_size, num_classes):
+        super(ClassificationEncoderCLSToken, self).__init__()
+        self.embed_size = embed_size
+        self.device = device
+        self.word_embedding = nn.Embedding(vocab_size, embed_size)
+        # self.position_embedding = nn.Embedding(max_length, embed_size)
+        self.position_embedding = PositionalEncoding(embed_size, max_length)
+        self.layers = nn.ModuleList([TransformerBlock(embed_size, heads, dropout, feed_forward_dimension) for _ in range(num_layers)])
+        self.dropout = nn.Dropout(dropout)
+        self.classification_hidden = nn.Linear(embed_size, cls_hidden_size)
+        self.classification_head = nn.Linear(cls_hidden_size, num_classes)
+        self.pad_idx = pad_idx
+
+    def make_src_mask(self, src):
+        src_mask = (src != self.pad_idx).unsqueeze(1).unsqueeze(2)
+        # print(src_mask)
+        return src_mask.to(self.device)
+
+    def forward(self, x):
+        N, seq_length = x.shape
+        mask = self.make_src_mask(x)
+        # print(mask)
+        pos_embed = self.position_embedding().unsqueeze(0).expand(N, -1, -1)[:, :seq_length, :]
+        attention_matrices = []
+        out = self.dropout((self.word_embedding(x) + pos_embed))
+        for layer in self.layers:
+            out, attention = layer(out, out, out, mask)
+            attention_matrices.append(attention.detach().cpu())
+        cls_embedding = out[:, 0, :]
+        out = self.classification_hidden(cls_embedding)
+        out = self.classification_head(out)
+        return out, attention_matrices
 
 
 class ClassificationEncoderDeberta(nn.Module):

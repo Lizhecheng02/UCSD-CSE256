@@ -2,9 +2,9 @@ import torch
 from torch.utils.data import DataLoader
 from torch.nn.utils.rnn import pad_sequence
 import os
-from tokenizer import SimpleTokenizer
-from dataset import SpeechesClassificationDataset, LanguageModelingDataset
-from transformer import ClassificationEncoder, Decoder, ClassificationEncoderAlibi, ClassificationEncoderWindowAttention, ClassificationEncoderDeberta
+from tokenizer import SimpleTokenizer, SimpleTokenizerWithCLS
+from dataset import SpeechesClassificationDataset, LanguageModelingDataset, SpeechesClassificationDatasetWithCLS
+from transformer import ClassificationEncoder, Decoder, ClassificationEncoderAlibi, ClassificationEncoderWindowAttention, ClassificationEncoderDeberta, ClassificationEncoderCLSToken
 from tqdm import tqdm
 import torch.nn as nn
 import torch.optim as optim
@@ -140,12 +140,20 @@ def main():
 
     print("Loading data and creating tokenizer ...")
     texts = load_texts("speechesdataset")
-    tokenizer = SimpleTokenizer(" ".join(texts))
+    if "cls_token" not in args.run:
+        tokenizer = SimpleTokenizer(" ".join(texts))
+    else:
+        tokenizer = SimpleTokenizerWithCLS(" ".join(texts))
     print("Vocabulary size is", tokenizer.vocab_size)
 
-    if "encoder" in args.run:
+    if "encoder" in args.run and "cls_token" not in args.run:
         train_CLS_dataset = SpeechesClassificationDataset(tokenizer, "speechesdataset/train_CLS.tsv")
         test_CLS_dataset = SpeechesClassificationDataset(tokenizer, "speechesdataset/test_CLS.tsv")
+        train_CLS_loader = DataLoader(train_CLS_dataset, batch_size=batch_size, collate_fn=collate_batch, shuffle=True)
+        test_CLS_loader = DataLoader(test_CLS_dataset, batch_size=batch_size, collate_fn=collate_batch, shuffle=True)
+    else:
+        train_CLS_dataset = SpeechesClassificationDatasetWithCLS(tokenizer, "speechesdataset/train_CLS.tsv")
+        test_CLS_dataset = SpeechesClassificationDatasetWithCLS(tokenizer, "speechesdataset/test_CLS.tsv")
         train_CLS_loader = DataLoader(train_CLS_dataset, batch_size=batch_size, collate_fn=collate_batch, shuffle=True)
         test_CLS_loader = DataLoader(test_CLS_dataset, batch_size=batch_size, collate_fn=collate_batch, shuffle=True)
 
@@ -177,6 +185,20 @@ def main():
 
     if args.run == "encoder_classic_mean":
         classification_encoder = ClassificationEncoder(
+            vocab_size=tokenizer.vocab_size,
+            embed_size=n_embd,
+            num_layers=n_layer,
+            heads=n_head,
+            device=device,
+            feed_forward_dimension=100,
+            dropout=0.1,
+            max_length=block_size,
+            pad_idx=0,
+            cls_hidden_size=n_hidden,
+            num_classes=n_output
+        )
+    elif args.run == "encoder_cls_token":
+        classification_encoder = ClassificationEncoderCLSToken(
             vocab_size=tokenizer.vocab_size,
             embed_size=n_embd,
             num_layers=n_layer,
