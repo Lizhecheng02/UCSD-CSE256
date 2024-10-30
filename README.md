@@ -5,6 +5,8 @@
 
 #### If you are only interested in code for PA1, [the repo is here](https://github.com/Lizhecheng02/UCSD-CSE256-PA1).
 
+#### If you are only interested in code for PA2, [the repo is here](https://github.com/Lizhecheng02/UCSD-CSE256-PA2).
+
 ----------------------------------------------------------------------------------------------
 
 ### Python Environment
@@ -91,22 +93,34 @@ All datasets are already in the GitHub repo.
 
 #### 2. PA 2
 ##### 2.1 Encoder
-- If you want to train the encoder classification with ``traditional attention`` and ``mean embedding output``, use:
+- If you want to train with ``traditional attention`` and ``mean embedding output``, use:
 
   ```bas
   python main.py --run "encoder_classic_mean"
   ```
 
-- If you want to train the encoder classification with ``slide window attention`` and ``mean embedding output``, use:
+- If you want to train with ``slide window attention`` and ``mean embedding output``, use:
 
   ```bas
   python main.py --run "encoder_window_attention"
   ```
   
-- If you want to train the encoder classification with ``alibi relative positional embedding`` and ``mean embedding output``, use:
+- If you want to train with ``alibi relative positional embedding`` and ``mean embedding output``, use:
 
   ```ba
   python main.py --run "encoder_alibi"
+  ```
+  
+- If you want to train with ``disentangled attention patterns`` and ``mean embedding output``, use:
+
+  ```bas
+  python main.py --run "encoder_deberta"
+  ```
+  
+- If you want to train with extra **[cls]** token to represent the final embedding output, use:
+
+  ```bas
+  python main.py --run "encoder_cls_token"
   ```
 
 You can change the parameters in ``main.py``, but you should be able to get around 86-87% accuracy using default values.
@@ -118,8 +132,9 @@ You can change the parameters in ``main.py``, but you should be able to get arou
 The code will draw attention plots after training for one specific sentence, they are saved under ``attention_maps`` folder. Here is an example:
 
 <div style="text-align: center;">
-    <img src="./PA2/attention_maps/attention_map_layer_4_head_1.png" width="75%" />
+    <img src="./PA2/attention_maps/encoder_classic_mean_attention_map_layer_4_head_1.png" width="75%" />
 </div>
+
 
 ##### 2.2 Decoder
 
