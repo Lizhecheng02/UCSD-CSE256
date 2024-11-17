@@ -7,6 +7,8 @@
 
 #### If you are only interested in code for PA2, [the repo is here](https://github.com/Lizhecheng02/UCSD-CSE256-PA2).
 
+#### If you are only interested in code for PA3, [the repo is here](https://github.com/Lizhecheng02/UCSD-CSE256-PA3).
+
 ----------------------------------------------------------------------------------------------
 
 ### Python Environment
@@ -42,7 +44,7 @@ kaggle datasets download -d lizhecheng/cse256-pa-data
 unzip cse256-pa-data.zip
 ```
 
-#### 2. PA 2
+#### 2. PA 2 & PA 3
 
 All datasets are already in the GitHub repo.
 
@@ -155,3 +157,6 @@ The code will also draw attention plots after training for one specific sentence
 <div style="text-align: center;">
     <img src="./PA2/attention_maps/decoder_attention_map_layer_4_head_1.png" width="75%" />
 </div>
+
+#### 3. PA 3
+You only need to run ``PA3_CSE256.ipynb`` file.
