@@ -9,6 +9,8 @@
 
 #### If you are only interested in code for PA3, [the repo is here](https://github.com/Lizhecheng02/UCSD-CSE256-PA3).
 
+#### If you are only interested in code for PA4, [the repo is here](https://github.com/Lizhecheng02/UCSD-CSE256-PA4).
+
 ----------------------------------------------------------------------------------------------
 
 ### Python Environment
@@ -160,3 +162,6 @@ The code will also draw attention plots after training for one specific sentence
 
 #### 3. PA 3
 You only need to run ``PA3_CSE256.ipynb`` file.
+
+#### 4. PA 4
+You only need to run ``PA4_CSE256_FA24.ipynb`` file.
